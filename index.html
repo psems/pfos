@@ -52,7 +52,8 @@
   <div id="clone-mode" class="hidden">
     <div id="reader"></div>
     <input type="text" id="clone-input" placeholder="Scan or edit QR content" value="CLONE ME!">
-    <button onclick="generateCloneQR()">Clone QR Code</button>
+    <button id="generate-clone-btn" onclick="generateCloneQR()">Generate QR</button>
+    <button id="scan-qr-btn" type="button" onclick="startCamera()">Scan QR Code</button>
   </div>
 
   <div id="qr"></div>
@@ -182,9 +183,12 @@
       // Show or hide the increment button
       document.getElementById('increment-btn').classList.toggle('hidden', selected !== 'increment');
 
+      const scanBtn = document.getElementById('scan-qr-btn');
+      if (scanBtn) scanBtn.style.display = (selected === 'clone') ? '' : 'none';
+
       if (selected === 'clone') {
         generateCloneQR();
-        startCamera();
+        stopCamera();
       } else if (selected === 'increment') {
         startIncrementQR();
       } else {
@@ -206,9 +210,11 @@
       // Show initial QR code for the default mode
       const mode = document.getElementById('mode-select').value;
       document.getElementById('increment-btn').classList.toggle('hidden', mode !== 'increment');
+      const scanBtn = document.getElementById('scan-qr-btn');
+      if (scanBtn) scanBtn.style.display = (mode === 'clone') ? '' : 'none';
       if (mode === 'clone') {
         generateCloneQR();
-        startCamera();
+        stopCamera();
       } else if (mode === 'increment') {
         startIncrementQR();
       } else {
@@ -221,24 +227,24 @@
     let scanner;
 
     function startCamera() {
-      // Always stop and clear any previous scanner
       stopCamera();
-      // Ensure the reader div is visible and cleared
+      const scanBtn = document.getElementById('scan-qr-btn');
+      if (scanBtn) scanBtn.style.display = 'none';
       const readerDiv = document.getElementById('reader');
       readerDiv.innerHTML = '';
       readerDiv.classList.remove('hidden');
-      // Diagnostics for mobile camera issues
       if (typeof Html5Qrcode === 'undefined') {
         alert('QR scanner library not loaded.');
         console.error('Html5Qrcode is undefined.');
+        if (scanBtn) scanBtn.style.display = '';
         return;
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera API not supported in this browser.');
         console.error('mediaDevices.getUserMedia not available.');
+        if (scanBtn) scanBtn.style.display = '';
         return;
       }
-      // iOS Safari: check for permissions
       if (typeof navigator.permissions !== 'undefined' && navigator.permissions.query) {
         navigator.permissions.query({ name: 'camera' }).then(function(result) {
           console.log('Camera permission state:', result.state);
@@ -252,7 +258,6 @@
           fps: 10,
           qrbox: 250
         }, qrCodeMessage => {
-          // Put the captured QR code text into the box and generate the QR code immediately
           document.getElementById('clone-input').value = qrCodeMessage;
           generateCloneQR();
           stopCamera();
@@ -264,28 +269,33 @@
       } catch (err) {
         console.error('Camera init error:', err);
         alert("Camera initialization failed.\nError: " + err);
+        if (scanBtn) scanBtn.style.display = '';
       }
     }
 
     function stopCamera() {
       const readerDiv = document.getElementById('reader');
+      const scanBtn = document.getElementById('scan-qr-btn');
       if (scanner) {
         scanner.stop().then(() => {
           scanner.clear();
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
+          if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
         }).catch(err => {
           console.error('Camera stop error:', err);
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
+          if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
         });
       } else {
         if (readerDiv) readerDiv.innerHTML = '';
+        if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
       }
-      // Hide the reader div when not in clone mode
       if (readerDiv && document.getElementById('mode-select').value !== 'clone') {
         readerDiv.classList.add('hidden');
       }
+      if (scanBtn && document.getElementById('mode-select').value !== 'clone') scanBtn.style.display = 'none';
     }
   </script>
 </body>
