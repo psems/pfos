@@ -1,8 +1,15 @@
+/*
+Pocket Full of Sunshine - style.css
+==================================
+Hacker/terminal theme, mobile-first, accessible, and cross-browser optimized.
+*/
+
 /* Hide elements with the .hidden class */
 #cancel-scan-btn.hidden {
   display: none;
 }
 body {
+  /* Main app container */
   font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
   text-align: center;
   background: #000;
@@ -61,6 +68,7 @@ button:hover {
   border-color: #b6ff00;
 }
 #qr {
+  /* QR code display container, mobile-optimized */
   margin: 20px auto;
   cursor: pointer;
   background: #111;
@@ -76,6 +84,7 @@ button:hover {
   max-width: 100vw;
 }
 .hidden { display: none; }
+#cancel-scan-btn.hidden { display: none; }
 #reader {
   width: 320px;
   margin: auto;
@@ -111,11 +120,24 @@ h2 {
   background: #00ff00;
   color: #000;
 }
-  /* text-align-last is not supported on iOS Safari, so use fallback */
+select#mode-select {
+  /* Center dropdown text for all browsers, mobile-friendly */
   text-align: center;
-  /* For best cross-browser support, center option text with padding and text-align */
+  width: 90%;
+  max-width: 320px;
+  margin: 0.5em auto;
+  display: block;
 }
 select#mode-select option {
   text-align: center;
 }
+/* Responsive tweaks for mobile */
+@media (max-width: 480px) {
+  #reader, #qr, input, button, select, textarea#log {
+    max-width: 98vw;
+    font-size: 1em;
+  }
+  #qr {
+    padding: 8px;
+  }
 }
