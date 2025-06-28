@@ -1,0 +1,206 @@
+<!--
+  Pocket Full of Sunshine
+  =====================
+  An open source QR code utility for generating, incrementing, and cloning QR codes in the browser.
+
+  Author: GrandMasterFunk
+  License: MIT
+  Repository: https://github.com/yourusername/pocketFullOfSunshine (update with actual repo URL)
+  Version: 0.0.7
+  Date: 2025-06-27
+
+  Description:
+    Pocket Full of Sunshine is a simple, browser-based tool for generating QR codes from text, incrementing numbers, or cloning existing QR codes via camera scan. It supports logging, marking, and downloading QR code generation history. No backend required.
+
+  Usage:
+    - Select a mode: Text, Increment, or Clone QR
+    - Enter your data or scan a QR code
+    - Generate and interact with QR codes directly in your browser
+    - Mark and download your QR code log for record-keeping
+
+  Contributions welcome! Please see the repository for details.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pocket Full of Sunshine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f4f4f4; padding: 1em; }
+    input, button, select, textarea {
+      font-size: 1em; padding: 0.5em; margin: 0.5em; width: 90%; max-width: 320px;
+    }
+    #qr { margin: 20px auto; cursor: pointer; }
+    .hidden { display: none; }
+    #reader { width: 320px; margin: auto; }
+  </style>
+</head>
+<body>
+
+  <h2>Pocket Full of Sunshine</h2>
+
+  <select id="mode-select">   
+    <option value="text">Text</option>
+    <option value="increment">Increment</option>
+    <option value="clone">Clone QR</option>
+  </select>
+
+  <div id="text-mode">
+    <input type="text" id="text-input" placeholder="Enter text">
+    <button onclick="generateTextQR()">Generate QR</button>
+  </div>
+
+  <div id="increment-mode" class="hidden">
+    <input type="number" id="start-number" placeholder="Start number">
+    <input type="number" id="increment-step" placeholder="Step" value="1">
+    <button onclick="startIncrementQR()">Start</button>
+  </div>
+
+  <div id="clone-mode" class="hidden">
+    <div id="reader"></div>
+    <input type="text" id="clone-input" placeholder="Scan or edit QR content">
+    <button onclick="generateCloneQR()">Generate from Scan</button>
+  </div>
+
+  <div id="qr" style="display: flex; justify-content: center; align-items: center;"></div>
+
+  <button onclick="markCurrent()" style="background: orange;">MARK</button>
+  <button onclick="downloadLog()">Download Log</button>
+
+  <textarea id="log" readonly></textarea>
+
+  <!-- QR Libraries via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
+
+  <script>
+    let qr;
+    let currentNumber = 0;
+    let incrementStep = 1;
+    let isIncrementMode = false;
+    let currentValue = '';
+    const logArea = document.getElementById('log');
+
+    function clearQR() {
+      document.getElementById('qr').innerHTML = "";
+    }
+
+    function logEntry(value, marked = false) {
+      const timestamp = new Date().toLocaleString();
+      const entry = `${timestamp} - ${value}${marked ? " [MARKED]" : ""}`;
+      logArea.value += entry + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function generateTextQR() {
+      isIncrementMode = false;
+      const text = document.getElementById('text-input').value;
+      currentValue = text;
+      clearQR();
+      qr = new QRCode(document.getElementById("qr"), {
+        text: text,
+        width: 256,
+        height: 256
+      });
+      logEntry(text);
+    }
+
+    function startIncrementQR() {
+      isIncrementMode = true;
+      currentNumber = parseInt(document.getElementById('start-number').value, 10);
+      incrementStep = parseInt(document.getElementById('increment-step').value, 10);
+      generateIncrementQR();
+    }
+
+    function generateIncrementQR() {
+      currentValue = currentNumber.toString();
+      clearQR();
+      qr = new QRCode(document.getElementById("qr"), {
+        text: currentValue,
+        width: 256,
+        height: 256
+      });
+      logEntry(currentValue);
+    }
+
+    function markCurrent() {
+      if (currentValue !== '') {
+        logEntry(currentValue, true);
+      }
+    }
+
+    function downloadLog() {
+      const blob = new Blob([logArea.value], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'qr-log.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function generateCloneQR() {
+      const text = document.getElementById('clone-input').value;
+      currentValue = text;
+      clearQR();
+      qr = new QRCode(document.getElementById("qr"), {
+        text: text,
+        width: 256,
+        height: 256
+      });
+      logEntry("Cloned: " + text);
+    }
+
+    // QR Tap to increment
+    document.getElementById('qr').addEventListener('click', () => {
+      if (isIncrementMode) {
+        currentNumber += incrementStep;
+        generateIncrementQR();
+      }
+    });
+
+    document.getElementById('mode-select').addEventListener('change', function () {
+      ['text', 'increment', 'clone'].forEach(mode => {
+        document.getElementById(`${mode}-mode`).classList.add('hidden');
+      });
+
+      const selected = this.value;
+      document.getElementById(`${selected}-mode`).classList.remove('hidden');
+      clearQR();
+
+      if (selected === 'clone') {
+        startCamera();
+      } else {
+        stopCamera();
+      }
+    });
+
+    let scanner;
+
+    function startCamera() {
+      if (scanner) return;
+      scanner = new Html5Qrcode("reader");
+      scanner.start({ facingMode: "environment" }, {
+        fps: 10,
+        qrbox: 250
+      }, qrCodeMessage => {
+        document.getElementById('clone-input').value = qrCodeMessage;
+        scanner.stop();
+        scanner.clear();
+        scanner = null;
+      }).catch(err => {
+        console.error(err);
+        alert("Camera access failed.");
+      });
+    }
+
+    function stopCamera() {
+      if (scanner) {
+        scanner.stop().then(() => scanner.clear()).catch(console.error);
+        scanner = null;
+      }
+    }
+  </script>
+</body>
+</html>
