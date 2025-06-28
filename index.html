@@ -252,7 +252,9 @@
           fps: 10,
           qrbox: 250
         }, qrCodeMessage => {
+          // Put the captured QR code text into the box and generate the QR code immediately
           document.getElementById('clone-input').value = qrCodeMessage;
+          generateCloneQR();
           stopCamera();
         }).catch(err => {
           console.error('Camera start error:', err);
