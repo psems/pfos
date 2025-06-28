@@ -131,6 +131,11 @@ select#mode-select {
 select#mode-select option {
   text-align: center;
 }
+#clone-file-input {
+  display: block;
+  margin: 0.5em auto;
+  max-width: 320px;
+}
 /* Responsive tweaks for mobile */
 @media (max-width: 480px) {
   #reader, #qr, input, button, select, textarea#log {

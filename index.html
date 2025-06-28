@@ -38,6 +38,7 @@ Optimized for:
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#00ff00">
   <link rel="stylesheet" href="style.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 </head>
 <body>
   <h2>Pocket Full of Sunshine</h2>
@@ -65,9 +66,10 @@ Optimized for:
   <div id="clone-mode" class="hidden">
     <div id="reader"></div>
     <input type="text" id="clone-input" placeholder="Scan or edit QR content" value="CLONE ME!" aria-label="Cloned QR content">
+    <input type="file" id="clone-file-input" accept="image/*" aria-label="Upload QR image" style="display:block; margin:0.5em auto; max-width:320px;">
     <button id="generate-clone-btn" onclick="generateCloneQR()">Generate QR</button>
     <button id="scan-qr-btn" type="button" onclick="startCamera()">Scan QR Code</button>
-    <button id="cancel-scan-btn" type="button" class="hidden" onclick="stopCamera()">Cancel Scan</button>
+    <button id="cancel-scan-btn" type="button" onclick="stopCamera()">Cancel Scan</button>
   </div>
   <div id="qr"></div>
   <button id="increment-btn" class="hidden" onclick="incrementAndGenerateQR()">INCREMENT</button>
@@ -256,7 +258,6 @@ Optimized for:
       const cancelBtn = document.getElementById('cancel-scan-btn');
       if (scanBtn) scanBtn.style.display = 'none';
       if (cancelBtn) {
-        cancelBtn.classList.remove('hidden');
         cancelBtn.style.display = '';
       }
       const readerDiv = document.getElementById('reader');
@@ -352,27 +353,18 @@ Optimized for:
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
           if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) {
-            cancelBtn.classList.add('hidden');
-            cancelBtn.style.display = 'none';
-          }
+          if (cancelBtn) cancelBtn.style.display = '';
         }).catch(err => {
           console.error('Camera stop error:', err);
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
           if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) {
-            cancelBtn.classList.add('hidden');
-            cancelBtn.style.display = 'none';
-          }
+          if (cancelBtn) cancelBtn.style.display = '';
         });
       } else {
         if (readerDiv) readerDiv.innerHTML = '';
         if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-        if (cancelBtn) {
-          cancelBtn.classList.add('hidden');
-          cancelBtn.style.display = 'none';
-        }
+        if (cancelBtn) cancelBtn.style.display = '';
       }
       if (readerDiv && document.getElementById('mode-select').value !== 'clone') {
         readerDiv.classList.add('hidden');
@@ -382,6 +374,45 @@ Optimized for:
         cancelBtn.classList.add('hidden');
         cancelBtn.style.display = 'none';
       }
+    }
+
+    // Handle QR file upload for clone mode
+    const cloneFileInput = document.getElementById('clone-file-input');
+    if (cloneFileInput) {
+      cloneFileInput.addEventListener('change', function (event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            if (window.Html5Qrcode) {
+              // Use Html5Qrcode's scanFile API if available
+              Html5Qrcode.getCameras().then(() => {
+                Html5Qrcode.scanFile(img)
+                  .then(qrCodeMessage => {
+                    document.getElementById('clone-input').value = qrCodeMessage;
+                    logEntry(`Cloned from file: ${qrCodeMessage}`);
+                    generateCloneQR();
+                  })
+                  .catch(err => {
+                    alert('Could not decode QR code from image.');
+                    logEntry('Failed to decode QR from file.');
+                  });
+              }).catch(() => {
+                alert('QR scanner not available.');
+              });
+            } else {
+              alert('QR scanner library not loaded.');
+            }
+          };
+          img.onerror = function () {
+            alert('Could not load image file.');
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
   </script>
 </body>
