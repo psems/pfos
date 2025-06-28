@@ -255,7 +255,10 @@ Optimized for:
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
       if (scanBtn) scanBtn.style.display = 'none';
-      if (cancelBtn) cancelBtn.style.display = '';
+      if (cancelBtn) {
+        cancelBtn.classList.remove('hidden');
+        cancelBtn.style.display = '';
+      }
       const readerDiv = document.getElementById('reader');
       readerDiv.innerHTML = '';
       readerDiv.classList.remove('hidden');
@@ -263,7 +266,10 @@ Optimized for:
         alert('QR scanner library not loaded.');
         console.error('Html5Qrcode is undefined.');
         if (scanBtn) scanBtn.style.display = '';
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (cancelBtn) {
+          cancelBtn.classList.add('hidden');
+          cancelBtn.style.display = 'none';
+        }
         return;
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -346,24 +352,36 @@ Optimized for:
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
           if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) cancelBtn.style.display = 'none';
+          if (cancelBtn) {
+            cancelBtn.classList.add('hidden');
+            cancelBtn.style.display = 'none';
+          }
         }).catch(err => {
           console.error('Camera stop error:', err);
           scanner = null;
           if (readerDiv) readerDiv.innerHTML = '';
           if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) cancelBtn.style.display = 'none';
+          if (cancelBtn) {
+            cancelBtn.classList.add('hidden');
+            cancelBtn.style.display = 'none';
+          }
         });
       } else {
         if (readerDiv) readerDiv.innerHTML = '';
         if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (cancelBtn) {
+          cancelBtn.classList.add('hidden');
+          cancelBtn.style.display = 'none';
+        }
       }
       if (readerDiv && document.getElementById('mode-select').value !== 'clone') {
         readerDiv.classList.add('hidden');
       }
       if (scanBtn && document.getElementById('mode-select').value !== 'clone') scanBtn.style.display = 'none';
-      if (cancelBtn && document.getElementById('mode-select').value !== 'clone') cancelBtn.style.display = 'none';
+      if (cancelBtn && document.getElementById('mode-select').value !== 'clone') {
+        cancelBtn.classList.add('hidden');
+        cancelBtn.style.display = 'none';
+      }
     }
   </script>
 </body>
