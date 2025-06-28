@@ -26,46 +26,38 @@
   <meta charset="UTF-8">
   <title>Pocket Full of Sunshine</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: sans-serif; text-align: center; background: #f4f4f4; padding: 1em; }
-    input, button, select, textarea {
-      font-size: 1em; padding: 0.5em; margin: 0.5em; width: 90%; max-width: 320px;
-    }
-    #qr { margin: 20px auto; cursor: pointer; }
-    .hidden { display: none; }
-    #reader { width: 320px; margin: auto; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <h2>Pocket Full of Sunshine</h2>
 
   <select id="mode-select">   
-    <option value="text">Text</option>
+    <option value="clone" selected>Clone QR</option>
     <option value="increment">Increment</option>
-    <option value="clone">Clone QR</option>
+    <option value="text">Text</option>
   </select>
 
   <div id="text-mode">
-    <input type="text" id="text-input" placeholder="Enter text">
+    <input type="text" id="text-input" placeholder="Enter text" value="Groovy!" inputmode="text">
     <button onclick="generateTextQR()">Generate QR</button>
   </div>
 
   <div id="increment-mode" class="hidden">
-    <input type="number" id="start-number" placeholder="Start number">
-    <input type="number" id="increment-step" placeholder="Step" value="1">
+    <input type="number" id="start-number" placeholder="Start number" inputmode="numeric" pattern="[0-9]*" value="1">
+    <input type="number" id="increment-step" placeholder="Step" value="1" inputmode="numeric" pattern="[0-9]*">
     <button onclick="startIncrementQR()">Start</button>
   </div>
 
   <div id="clone-mode" class="hidden">
     <div id="reader"></div>
-    <input type="text" id="clone-input" placeholder="Scan or edit QR content">
-    <button onclick="generateCloneQR()">Generate from Scan</button>
+    <input type="text" id="clone-input" placeholder="Scan or edit QR content" value="CLONE ME!">
+    <button onclick="generateCloneQR()">Clone QR Code</button>
   </div>
 
-  <div id="qr" style="display: flex; justify-content: center; align-items: center;"></div>
+  <div id="qr"></div>
 
-  <button onclick="markCurrent()" style="background: orange;">MARK</button>
+  <button id="mark-btn" onclick="markCurrent()">MARK</button>
   <button onclick="downloadLog()">Download Log</button>
 
   <textarea id="log" readonly></textarea>
@@ -86,9 +78,18 @@
       document.getElementById('qr').innerHTML = "";
     }
 
-    function logEntry(value, marked = false) {
-      const timestamp = new Date().toLocaleString();
-      const entry = `${timestamp} - ${value}${marked ? " [MARKED]" : ""}`;
+    function logEntry(value, marked = false, dateOnly = false) {
+      let entry;
+      if (dateOnly) {
+        // Log only the date in YYYY-MM-DD format
+        const date = new Date().toISOString().slice(0, 10);
+        entry = `--- ${date} ---`;
+      } else {
+        // Log time in 24-hour format
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-GB', { hour12: false });
+        entry = `${time} - ${value}${marked ? " [MARKED]" : ""}`;
+      }
       logArea.value += entry + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
@@ -101,7 +102,9 @@
       qr = new QRCode(document.getElementById("qr"), {
         text: text,
         width: 256,
-        height: 256
+        height: 256,
+        colorDark: "#00ff00",
+        colorLight: "#000000"
       });
       logEntry(text);
     }
@@ -119,7 +122,9 @@
       qr = new QRCode(document.getElementById("qr"), {
         text: currentValue,
         width: 256,
-        height: 256
+        height: 256,
+        colorDark: "#00ff00",
+        colorLight: "#000000"
       });
       logEntry(currentValue);
     }
@@ -147,7 +152,9 @@
       qr = new QRCode(document.getElementById("qr"), {
         text: text,
         width: 256,
-        height: 256
+        height: 256,
+        colorDark: "#00ff00",
+        colorLight: "#000000"
       });
       logEntry("Cloned: " + text);
     }
@@ -169,11 +176,42 @@
       document.getElementById(`${selected}-mode`).classList.remove('hidden');
       clearQR();
 
+      // Log the date when changing mode
+      logEntry('', false, true);
+
       if (selected === 'clone') {
+        generateCloneQR();
         startCamera();
+      } else if (selected === 'increment') {
+        startIncrementQR();
       } else {
+        generateTextQR();
+      }
+      if (selected !== 'clone') {
         stopCamera();
       }
+    });
+
+    // Generate default QR code on load
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('mode-select').value = 'clone';
+      ['text', 'increment', 'clone'].forEach(mode => {
+        document.getElementById(`${mode}-mode`).classList.add('hidden');
+      });
+      document.getElementById('clone-mode').classList.remove('hidden');
+      clearQR();
+      // Show initial QR code for the default mode
+      const mode = document.getElementById('mode-select').value;
+      if (mode === 'clone') {
+        generateCloneQR();
+        startCamera();
+      } else if (mode === 'increment') {
+        startIncrementQR();
+      } else {
+        generateTextQR();
+      }
+      // Log the date on initial load
+      logEntry('', false, true);
     });
 
     let scanner;

@@ -1,0 +1,110 @@
+body {
+  font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
+  text-align: center;
+  background: #000;
+  color: #00ff00;
+  padding: 1em;
+  min-height: 100vh;
+  letter-spacing: 0.5px;
+}
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0.5em;
+  margin: 0.5em;
+  width: 90%;
+  max-width: 320px;
+  background: #111;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  border-radius: 4px;
+  outline: none;
+  transition: border 0.2s;
+  box-sizing: border-box;
+  text-transform: uppercase;
+}
+input:focus, textarea:focus, select:focus {
+  border: 1.5px solid #00ff88;
+}
+button {
+  background: #111;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  cursor: pointer;
+  font-weight: bold;
+  text-shadow: 0 0 4px #00ff00;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  width: 90%;
+  max-width: 320px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+button:hover {
+  background: #003300;
+  color: #b6ff00;
+  border-color: #b6ff00;
+}
+#mark-btn {
+  background: #00ff00;
+  color: #000;
+  border: 1.5px solid #00ff00;
+  text-shadow: none;
+}
+#mark-btn:hover {
+  background: #b6ff00;
+  color: #000;
+  border-color: #b6ff00;
+}
+#qr {
+  margin: 20px auto;
+  cursor: pointer;
+  background: #111;
+  border: none;
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+}
+.hidden { display: none; }
+#reader {
+  width: 320px;
+  margin: auto;
+  background: #111;
+  border-radius: 8px;
+}
+textarea#log {
+  background: #101510;
+  color: #00ff00;
+  width: 95%;
+  min-height: 120px;
+  margin-top: 1em;
+  font-size: 1em;
+  border-radius: 6px;
+  resize: vertical;
+  font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
+  border: none;
+  border-left: 6px solid #00ff00;
+  padding-left: 1em;
+  box-shadow: 0 2px 16px #000a inset;
+  outline: none;
+  line-height: 1.5;
+}
+h2 {
+  color: #00ff00;
+  text-shadow: 0 0 12px #00ff00, 0 0 2px #fff;
+  font-size: 2.2em;
+  margin-bottom: 0.5em;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+::selection {
+  background: #00ff00;
+  color: #000;
+}
+select#mode-select {
+  text-align-last: center;
+  text-align: center;
+}
