@@ -227,9 +227,28 @@
       const readerDiv = document.getElementById('reader');
       readerDiv.innerHTML = '';
       readerDiv.classList.remove('hidden');
+      // Diagnostics for mobile camera issues
+      if (typeof Html5Qrcode === 'undefined') {
+        alert('QR scanner library not loaded.');
+        console.error('Html5Qrcode is undefined.');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera API not supported in this browser.');
+        console.error('mediaDevices.getUserMedia not available.');
+        return;
+      }
+      // iOS Safari: check for permissions
+      if (typeof navigator.permissions !== 'undefined' && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'camera' }).then(function(result) {
+          console.log('Camera permission state:', result.state);
+        }).catch(function(e) {
+          console.log('Camera permission query not supported:', e);
+        });
+      }
       try {
         scanner = new Html5Qrcode("reader");
-        scanner.start({ facingMode: "environment" }, {
+        scanner.start({ facingMode: { exact: "environment" } }, {
           fps: 10,
           qrbox: 250
         }, qrCodeMessage => {
@@ -237,12 +256,12 @@
           stopCamera();
         }).catch(err => {
           console.error('Camera start error:', err);
-          alert("Camera access failed. Please check permissions and HTTPS.");
+          alert("Camera access failed. Please check permissions, HTTPS, and try refreshing the page.\nError: " + err);
           stopCamera();
         });
       } catch (err) {
         console.error('Camera init error:', err);
-        alert("Camera initialization failed.");
+        alert("Camera initialization failed.\nError: " + err);
       }
     }
 
