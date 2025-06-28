@@ -57,6 +57,7 @@
 
   <div id="qr"></div>
 
+  <button id="increment-btn" class="hidden" onclick="incrementAndGenerateQR()">INCREMENT</button>
   <button id="mark-btn" onclick="markCurrent()">MARK</button>
   <button onclick="downloadLog()">Download Log</button>
 
@@ -159,13 +160,12 @@
       logEntry("Cloned: " + text);
     }
 
-    // QR Tap to increment
-    document.getElementById('qr').addEventListener('click', () => {
+    function incrementAndGenerateQR() {
       if (isIncrementMode) {
         currentNumber += incrementStep;
         generateIncrementQR();
       }
-    });
+    }
 
     document.getElementById('mode-select').addEventListener('change', function () {
       ['text', 'increment', 'clone'].forEach(mode => {
@@ -178,6 +178,9 @@
 
       // Log the date when changing mode
       logEntry('', false, true);
+
+      // Show or hide the increment button
+      document.getElementById('increment-btn').classList.toggle('hidden', selected !== 'increment');
 
       if (selected === 'clone') {
         generateCloneQR();
@@ -202,6 +205,7 @@
       clearQR();
       // Show initial QR code for the default mode
       const mode = document.getElementById('mode-select').value;
+      document.getElementById('increment-btn').classList.toggle('hidden', mode !== 'increment');
       if (mode === 'clone') {
         generateCloneQR();
         startCamera();
@@ -217,26 +221,49 @@
     let scanner;
 
     function startCamera() {
-      if (scanner) return;
-      scanner = new Html5Qrcode("reader");
-      scanner.start({ facingMode: "environment" }, {
-        fps: 10,
-        qrbox: 250
-      }, qrCodeMessage => {
-        document.getElementById('clone-input').value = qrCodeMessage;
-        scanner.stop();
-        scanner.clear();
-        scanner = null;
-      }).catch(err => {
-        console.error(err);
-        alert("Camera access failed.");
-      });
+      // Always stop and clear any previous scanner
+      stopCamera();
+      // Ensure the reader div is visible and cleared
+      const readerDiv = document.getElementById('reader');
+      readerDiv.innerHTML = '';
+      readerDiv.classList.remove('hidden');
+      try {
+        scanner = new Html5Qrcode("reader");
+        scanner.start({ facingMode: "environment" }, {
+          fps: 10,
+          qrbox: 250
+        }, qrCodeMessage => {
+          document.getElementById('clone-input').value = qrCodeMessage;
+          stopCamera();
+        }).catch(err => {
+          console.error('Camera start error:', err);
+          alert("Camera access failed. Please check permissions and HTTPS.");
+          stopCamera();
+        });
+      } catch (err) {
+        console.error('Camera init error:', err);
+        alert("Camera initialization failed.");
+      }
     }
 
     function stopCamera() {
+      const readerDiv = document.getElementById('reader');
       if (scanner) {
-        scanner.stop().then(() => scanner.clear()).catch(console.error);
-        scanner = null;
+        scanner.stop().then(() => {
+          scanner.clear();
+          scanner = null;
+          if (readerDiv) readerDiv.innerHTML = '';
+        }).catch(err => {
+          console.error('Camera stop error:', err);
+          scanner = null;
+          if (readerDiv) readerDiv.innerHTML = '';
+        });
+      } else {
+        if (readerDiv) readerDiv.innerHTML = '';
+      }
+      // Hide the reader div when not in clone mode
+      if (readerDiv && document.getElementById('mode-select').value !== 'clone') {
+        readerDiv.classList.add('hidden');
       }
     }
   </script>
