@@ -277,8 +277,42 @@ Optimized for:
           qrbox: 250
         }, qrCodeMessage => {
           document.getElementById('clone-input').value = qrCodeMessage;
-          generateCloneQR();
-          stopCamera();
+          // Try to get geolocation and log with QR
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+              const coords = pos.coords;
+              const lat = coords.latitude.toFixed(6);
+              const lon = coords.longitude.toFixed(6);
+              const loc = `@(${lat},${lon})`;
+              // Try to fetch nearest address from Nominatim OpenStreetMap
+              fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
+                .then(r => r.json())
+                .then(data => {
+                  let address = '';
+                  if (data && data.display_name) {
+                    address = ` [${data.display_name}]`;
+                  } else {
+                    address = ' [Address unavailable]';
+                  }
+                  logEntry(`Cloned: ${qrCodeMessage} ${loc}${address}`);
+                  generateCloneQR();
+                  stopCamera();
+                })
+                .catch(() => {
+                  logEntry(`Cloned: ${qrCodeMessage} ${loc} [Address lookup failed]`);
+                  generateCloneQR();
+                  stopCamera();
+                });
+            }, function(err) {
+              logEntry(`Cloned: ${qrCodeMessage} [Location unavailable]`);
+              generateCloneQR();
+              stopCamera();
+            }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+          } else {
+            logEntry(`Cloned: ${qrCodeMessage} [Location unsupported]`);
+            generateCloneQR();
+            stopCamera();
+          }
         }).catch(err => {
           console.error('Camera start error:', err);
           alert("Camera access failed. Please check permissions, HTTPS, and try refreshing the page.\nError: " + err);
