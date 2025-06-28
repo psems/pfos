@@ -35,6 +35,8 @@ Optimized for:
   <meta charset="UTF-8">
   <title>Pocket Full of Sunshine</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00ff00">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -76,6 +78,14 @@ Optimized for:
   <!-- QR Libraries: local copies for reliability, loaded before main script -->
   <script src="qrcode.min.js"></script>
   <script src="html5-qrcode.min.js"></script>
+  <script>
+    // Register service worker for PWA support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
   <script>
     // --- QR Utility Main Script ---
     // All logic is client-side, no data leaves the device.

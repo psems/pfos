@@ -1,0 +1,22 @@
+{
+  "name": "Pocket Full of Sunshine",
+  "short_name": "PFOS",
+  "description": "A hacker-themed, mobile-first QR code utility for generating, incrementing, and cloning QR codes in the browser.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff00",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
