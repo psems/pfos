@@ -39,6 +39,10 @@ Optimized for:
   <meta name="theme-color" content="#00ff00">
   <link rel="stylesheet" href="style.css">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  
+  <!-- Preload critical resources -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.9/html5-qrcode.min.js" as="script" crossorigin="anonymous">
 </head>
 <body>
   <h2>Pocket Full of Sunshine</h2>
@@ -63,7 +67,7 @@ Optimized for:
     <button onclick="startIncrementQR()">Generate QR</button>
   </div>
   <!-- Clone mode: scan or edit QR code content -->
-  <div id="clone-mode" class="hidden">
+  <div id="clone-mode">
     <div id="reader"></div>
     <input type="text" id="clone-input" placeholder="Scan or edit QR content" value="CLONE ME!" aria-label="Cloned QR content">
     <div class="upload-section">
@@ -81,10 +85,49 @@ Optimized for:
   <button onclick="downloadLog()">Download Log</button>
   <!-- Log output: bash-style, accessible, resizable -->
   <textarea id="log" readonly aria-label="QR code log" placeholder="QR code log will appear here"></textarea>
-  <!-- QR Libraries: local copies for reliability, loaded before main script -->
-  <!-- QR Libraries via CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
+  <!-- QR Libraries with fallbacks and integrity checks -->
+  <script>
+    // Library loading status tracking
+    window.librariesLoaded = {
+      qrcode: false,
+      html5qrcode: false
+    };
+
+    // Function to load script with fallback
+    function loadScript(primary, fallback, integrity, callback) {
+      const script = document.createElement('script');
+      script.src = primary;
+      script.integrity = integrity;
+      script.crossOrigin = 'anonymous';
+      script.onerror = () => {
+        console.warn(`Failed to load ${primary}, trying fallback...`);
+        const fallbackScript = document.createElement('script');
+        fallbackScript.src = fallback;
+        fallbackScript.crossOrigin = 'anonymous';
+        fallbackScript.onload = callback;
+        document.head.appendChild(fallbackScript);
+      };
+      script.onload = callback;
+      document.head.appendChild(script);
+    }
+
+    // Load QR Code library
+    loadScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+      'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js',
+      'sha512-M/AEf7HHzCBZ8xa0U1qJ7NfUZ8Ap1wZcnt1yKyBPhj4w0m2PFdGOBGufHkW6OgK8Ty24V5GZV6v5Jf+qXhRfQ==',
+      () => { window.librariesLoaded.qrcode = true; }
+    );
+
+    // Load HTML5 QR Code library
+    loadScript(
+      'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.9/html5-qrcode.min.js',
+      'https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js',
+      'sha384-0nIc6P5EH8eChf7XYPtC2Vq6Ikijupyter5M43l4yZUS3pQspatY5iV3d5aC5VnryB',
+      () => { window.librariesLoaded.html5qrcode = true; }
+    );
+  </script>
+
   <script>
     // Register service worker for PWA support
     if ('serviceWorker' in navigator) {
@@ -122,8 +165,21 @@ Optimized for:
       logArea.value += entry + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
+    // Check if libraries are loaded
+    function checkLibrariesLoaded() {
+      if (!window.librariesLoaded.qrcode || !window.librariesLoaded.html5qrcode) {
+        console.error('QR libraries not yet loaded');
+        alert('Please wait for QR libraries to load and try again');
+        return false;
+      }
+      return true;
+    }
+
     // Helper function to generate QR codes with validation and error handling
     function generateQRCode(text, prefix = '') {
+      // Check libraries
+      if (!checkLibrariesLoaded()) return false;
+
       // Input validation
       if (!text || typeof text !== 'string') {
         console.error('Invalid QR code content');

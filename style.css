@@ -5,8 +5,8 @@ Hacker/terminal theme, mobile-first, accessible, and cross-browser optimized.
 */
 
 /* Hide elements with the .hidden class */
-#cancel-scan-btn.hidden {
-  display: none;
+.hidden {
+  display: none !important;
 }
 
 /* File upload styling */
