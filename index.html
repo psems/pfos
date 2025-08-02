@@ -97,18 +97,18 @@ Optimized for:
     <option value="UPC_E">UPC-E</option>
   </select>
   <!-- Text mode: free text to QR code -->
-  <div id="text-mode">
+  <div id="text-mode" class="hidden">
     <input type="text" id="text-input" placeholder="Enter text" value="Groovy!" inputmode="text" aria-label="Text to encode">
-    <button onclick="generateTextQR()">Generate QR</button>
+    <button onclick="generateTextQR()" id="generate-text-btn">Generate QR</button>
   </div>
   <!-- Increment mode: generate a series of QR codes -->
   <div id="increment-mode" class="hidden">
     <input type="number" id="start-number" placeholder="Start number" inputmode="numeric" pattern="[0-9]*"  aria-label="Start number">
     <input type="number" id="increment-step" placeholder="Step" inputmode="numeric" pattern="[0-9]*" aria-label="Increment step">
-    <button onclick="startIncrementQR()">Generate QR</button>
+    <button onclick="startIncrementQR()" id="generate-increment-btn">Generate QR</button>
   </div>
   <!-- Clone mode: scan or edit QR code content -->
-  <div id="clone-mode">
+  <div id="clone-mode" class="hidden">
     <div id="reader"></div>
     <input type="text" id="clone-input" placeholder="Scan or edit QR content" value="CLONE ME!" aria-label="Cloned QR content">
     <div class="upload-section">
@@ -118,7 +118,7 @@ Optimized for:
     </div>
     <button id="generate-clone-btn" onclick="generateCloneQR()">Generate QR</button>
     <button id="scan-qr-btn" type="button" onclick="startCamera()">Scan QR Code</button>
-    <button id="cancel-scan-btn" type="button" onclick="stopCamera()">Cancel Scan</button>
+    <button id="cancel-scan-btn" type="button" onclick="stopCamera()" class="hidden">Cancel Scan</button>
   </div>
   <div id="qr"></div>
   <svg id="barcode"></svg>
@@ -313,6 +313,20 @@ Optimized for:
       }
     }
 
+    // Update button text based on selected format
+    function updateGenerateButtonText() {
+      const format = document.getElementById('format-select').value;
+      const formatLabel = format.split('_').map(word => 
+        word.charAt(0) + word.slice(1).toLowerCase()
+      ).join(' ');
+      document.getElementById('generate-text-btn').textContent = `Generate ${formatLabel}`;
+      document.getElementById('generate-clone-btn').textContent = `Generate ${formatLabel}`;
+      document.getElementById('generate-increment-btn').textContent = `Generate ${formatLabel}`;
+    }
+
+    // Add format change listener
+    document.getElementById('format-select').addEventListener('change', updateGenerateButtonText);
+
     document.getElementById('mode-select').addEventListener('change', function () {
       ['text', 'increment', 'clone'].forEach(mode => {
         document.getElementById(`${mode}-mode`).classList.add('hidden');
@@ -419,6 +433,8 @@ Optimized for:
 
     // Initialize the application and generate default QR code
     window.addEventListener('DOMContentLoaded', () => {
+      clearQR(); // Clear any existing QR codes
+      
       // Set default values
       const defaultMode = 'clone';
       const defaultCloneText = 'CLONE ME!';
@@ -432,21 +448,23 @@ Optimized for:
       document.getElementById('mode-select').value = defaultMode;
       document.getElementById('clone-input').value = defaultCloneText;
       
+      // Set initial button text
+      updateGenerateButtonText();
+      
       // Hide all mode divs initially
       ['text', 'increment', 'clone'].forEach(mode => {
         document.getElementById(`${mode}-mode`).classList.add('hidden');
       });
       
       // Show only the selected mode
-      document.getElementById('clone-mode').classList.remove('hidden');
-      clearQR();
+      document.getElementById(defaultMode + '-mode').classList.remove('hidden');
       
       // Configure buttons based on mode
       document.getElementById('increment-btn').classList.add('hidden');
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
-      if (scanBtn) scanBtn.style.display = '';
-      if (cancelBtn) cancelBtn.style.display = 'none';
+      if (scanBtn) scanBtn.style.display = (defaultMode === 'clone') ? '' : 'none';
+      if (cancelBtn) cancelBtn.classList.add('hidden');
       
       // Generate initial QR code with error handling
       try {
