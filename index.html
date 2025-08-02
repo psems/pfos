@@ -229,29 +229,54 @@ Optimized for:
           'ITF': 'ITF',
         };
 
-        if (format === 'QR_CODE') {
-          // Generate QR Code
-          document.getElementById('barcode').style.display = 'none';
+        // Hide both display areas initially
+        document.getElementById('barcode').style.display = 'none';
+        document.getElementById('qr').style.display = 'none';
+
+        if (barcodeFormats[format]) {
+          // Generate 1D barcode
+          document.getElementById('barcode').style.display = 'block';
+          try {
+            JsBarcode("#barcode", text, {
+              format: barcodeFormats[format],
+              width: 2,
+              height: 100,
+              displayValue: true,
+              lineColor: "#00ff00",
+              background: "#000000",
+              margin: 10,
+              fontSize: 16,
+              font: "monospace"
+            });
+          } catch (barcodeError) {
+            console.error('Barcode generation failed:', barcodeError);
+            alert('Failed to generate barcode. Please check the content matches the format requirements.');
+            return false;
+          }
+        } else {
+          // Handle QR Code and other 2D codes
           document.getElementById('qr').style.display = 'block';
           qr = new QRCode(document.getElementById("qr"), {
-            text: encodedText,
+            text: format === 'QR_CODE' ? encodedText : text,
             width: 256,
             height: 256,
             colorDark: "#00ff00",
             colorLight: "#000000",
             correctLevel: QRCode.CorrectLevel.M, // Medium error correction for better compatibility
-          quietZone: 10,
-          quietZoneColor: "#000000"
-        });
+            quietZone: 10,
+            quietZoneColor: "#000000"
+          });
+        }
+        
         currentValue = text;
         logEntry(prefix + text);
         return true;
+
       } catch (error) {
-        console.error('QR code generation failed:', error);
-        alert('Failed to generate QR code. Please try again with different content.');
+        console.error('Code generation failed:', error);
+        alert('Failed to generate code. Please try again with different content.');
         return false;
       }
-    }
 
     // Generate a QR code from text input
     function generateTextQR() {
