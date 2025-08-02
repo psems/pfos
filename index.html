@@ -78,8 +78,9 @@ Optimized for:
   <!-- Log output: bash-style, accessible, resizable -->
   <textarea id="log" readonly aria-label="QR code log" placeholder="QR code log will appear here"></textarea>
   <!-- QR Libraries: local copies for reliability, loaded before main script -->
-  <script src="qrcode.min.js"></script>
-  <script src="html5-qrcode.min.js"></script>
+  <!-- QR Libraries via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.9/minified/html5-qrcode.min.js"></script>
   <script>
     // Register service worker for PWA support
     if ('serviceWorker' in navigator) {
