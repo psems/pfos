@@ -216,8 +216,8 @@ Optimized for:
         clearQR();
         const encodedText = encodeURIComponent(text);  // Ensure consistent UTF-8 encoding
 
-        // Map format values to JsBarcode format names
-        const barcodeFormats = {
+        // Determine code type and format
+        const oneDFormats = {
           'CODE_128': 'CODE128',
           'CODE_39': 'CODE39',
           'CODE_93': 'CODE93',
@@ -229,16 +229,18 @@ Optimized for:
           'ITF': 'ITF',
         };
 
+        const twoDFormats = ['QR_CODE', 'AZTEC', 'DATA_MATRIX', 'PDF_417'];
+
         // Hide both display areas initially
         document.getElementById('barcode').style.display = 'none';
         document.getElementById('qr').style.display = 'none';
 
-        if (barcodeFormats[format]) {
+        if (oneDFormats[format]) {
           // Generate 1D barcode
           document.getElementById('barcode').style.display = 'block';
           try {
             JsBarcode("#barcode", text, {
-              format: barcodeFormats[format],
+              format: oneDFormats[format],
               width: 2,
               height: 100,
               displayValue: true,
@@ -253,7 +255,7 @@ Optimized for:
             alert('Failed to generate barcode. Please check the content matches the format requirements.');
             return false;
           }
-        } else {
+        } else if (twoDFormats.includes(format)) {
           // Handle QR Code and other 2D codes
           document.getElementById('qr').style.display = 'block';
           qr = new QRCode(document.getElementById("qr"), {
