@@ -54,10 +54,21 @@ Optimized for:
       background: #000;
       color: #00ff00;
     }
+    #barcode {
+      display: none;
+      max-width: 100%;
+      height: auto;
+      margin: 20px auto;
+    }
+    #qr {
+      display: block;
+      margin: 20px auto;
+    }
   </style>
-  <!-- Load QR code libraries -->
+  <!-- Load barcode libraries -->
   <script src="qrcode.min.js"></script>
   <script src="html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
   <h2>Pocket Full of Sunshine</h2>
@@ -110,6 +121,7 @@ Optimized for:
     <button id="cancel-scan-btn" type="button" onclick="stopCamera()">Cancel Scan</button>
   </div>
   <div id="qr"></div>
+  <svg id="barcode"></svg>
   <button id="increment-btn" class="hidden" onclick="incrementAndGenerateQR()">INCREMENT</button>
   <button id="mark-btn" onclick="markCurrent()">MARK</button>
   <button onclick="downloadLog()">Download Log</button>
@@ -135,6 +147,7 @@ Optimized for:
     // Clear the QR code display
     function clearQR() {
       document.getElementById('qr').innerHTML = "";
+      document.getElementById('barcode').innerHTML = "";
     }
     // Log an entry to the log textarea, with date/time and optional mark
     function logEntry(value, marked = false, dateOnly = false) {
@@ -154,17 +167,17 @@ Optimized for:
     }
     // Helper function to generate QR codes with validation and error handling
     function generateQRCode(text, prefix = '') {
-      // Check if QR library is available
-      if (typeof QRCode === 'undefined') {
-        console.error('QR library not loaded');
-        alert('QR library not loaded. Please refresh the page.');
+      // Check if required libraries are available
+      if (typeof QRCode === 'undefined' || typeof JsBarcode === 'undefined') {
+        console.error('Required libraries not loaded');
+        alert('Required libraries not loaded. Please refresh the page.');
         return false;
       }
 
       // Input validation
       if (!text || typeof text !== 'string') {
-        console.error('Invalid QR code content');
-        alert('Please enter valid content for the QR code');
+        console.error('Invalid code content');
+        alert('Please enter valid content for the code');
         return false;
       }
 
@@ -191,24 +204,42 @@ Optimized for:
         }
       }
 
-      // Check content length (QR code version 40 can store up to 7,089 numeric characters or 4,296 alphanumeric characters)
-      const maxLength = 4000; // Safe limit for all types
+      // Check content length
+      const maxLength = 4000;
       if (text.length > maxLength) {
-        console.error('QR code content too long');
-        alert(`QR code content must be less than ${maxLength} characters`);
+        console.error('Code content too long');
+        alert(`Code content must be less than ${maxLength} characters`);
         return false;
       }
 
       try {
         clearQR();
         const encodedText = encodeURIComponent(text);  // Ensure consistent UTF-8 encoding
-        qr = new QRCode(document.getElementById("qr"), {
-          text: encodedText,
-          width: 256,
-          height: 256,
-          colorDark: "#00ff00",
-          colorLight: "#000000",
-          correctLevel: QRCode.CorrectLevel.M, // Medium error correction for better compatibility
+
+        // Map format values to JsBarcode format names
+        const barcodeFormats = {
+          'CODE_128': 'CODE128',
+          'CODE_39': 'CODE39',
+          'CODE_93': 'CODE93',
+          'EAN_13': 'EAN13',
+          'EAN_8': 'EAN8',
+          'UPC_A': 'UPC',
+          'UPC_E': 'UPC',
+          'CODABAR': 'codabar',
+          'ITF': 'ITF',
+        };
+
+        if (format === 'QR_CODE') {
+          // Generate QR Code
+          document.getElementById('barcode').style.display = 'none';
+          document.getElementById('qr').style.display = 'block';
+          qr = new QRCode(document.getElementById("qr"), {
+            text: encodedText,
+            width: 256,
+            height: 256,
+            colorDark: "#00ff00",
+            colorLight: "#000000",
+            correctLevel: QRCode.CorrectLevel.M, // Medium error correction for better compatibility
           quietZone: 10,
           quietZoneColor: "#000000"
         });
