@@ -259,7 +259,6 @@
           qrbox: 250
         }, qrCodeMessage => {
           document.getElementById('clone-input').value = qrCodeMessage;
-          generateCloneQR();
           stopCamera();
         }).catch(err => {
           console.error('Camera start error:', err);
