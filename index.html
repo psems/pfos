@@ -261,29 +261,41 @@ Optimized for:
       }
     });
 
-    // Generate default QR code on load
+    // Initialize the application and generate default QR code
     window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('mode-select').value = 'clone';
+      // Set default values
+      const defaultMode = 'clone';
+      const defaultCloneText = 'CLONE ME!';
+      
+      // Initialize UI state
+      document.getElementById('mode-select').value = defaultMode;
+      document.getElementById('clone-input').value = defaultCloneText;
+      
+      // Hide all mode divs initially
       ['text', 'increment', 'clone'].forEach(mode => {
         document.getElementById(`${mode}-mode`).classList.add('hidden');
       });
+      
+      // Show only the selected mode
       document.getElementById('clone-mode').classList.remove('hidden');
       clearQR();
-      // Show initial QR code for the default mode
-      const mode = document.getElementById('mode-select').value;
-      document.getElementById('increment-btn').classList.toggle('hidden', mode !== 'increment');
+      
+      // Configure buttons based on mode
+      document.getElementById('increment-btn').classList.add('hidden');
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
-      if (scanBtn) scanBtn.style.display = (mode === 'clone') ? '' : 'none';
+      if (scanBtn) scanBtn.style.display = '';
       if (cancelBtn) cancelBtn.style.display = 'none';
-      if (mode === 'clone') {
+      
+      // Generate initial QR code with error handling
+      try {
         generateCloneQR();
         stopCamera();
-      } else if (mode === 'increment') {
-        startIncrementQR();
-      } else {
-        generateTextQR();
+      } catch (error) {
+        console.error('Failed to generate initial QR code:', error);
+        alert('Failed to initialize QR code. Please refresh the page.');
       }
+      
       // Log the date on initial load
       logEntry('', false, true);
     });
@@ -389,12 +401,35 @@ Optimized for:
             stopCamera();
           }
         }).catch(err => {
-          console.error('Camera start error:', err);
+          const errorDetails = {
+            type: err.name || 'Unknown',
+            message: err.message || 'No error message',
+            stack: err.stack || 'No stack trace',
+            timestamp: new Date().toISOString(),
+            browser: navigator.userAgent,
+            https: window.location.protocol === 'https:',
+            camera: {
+              mediaDevices: !!navigator.mediaDevices,
+              getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+              permissions: typeof navigator.permissions !== 'undefined'
+            }
+          };
+          console.error('Camera start error:', errorDetails);
+          logEntry(`Camera error: ${errorDetails.type} - ${errorDetails.message}`);
           alert("Camera access failed. Please check permissions, HTTPS, and try refreshing the page.\nError: " + err);
           stopCamera();
         });
       } catch (err) {
-        console.error('Camera init error:', err);
+        const errorDetails = {
+          type: err.name || 'Unknown',
+          message: err.message || 'No error message',
+          stack: err.stack || 'No stack trace',
+          timestamp: new Date().toISOString(),
+          scanner: typeof Html5Qrcode !== 'undefined' ? 'loaded' : 'not loaded',
+          reader: document.getElementById('reader') ? 'exists' : 'not found'
+        };
+        console.error('Camera init error:', errorDetails);
+        logEntry(`Camera init error: ${errorDetails.type} - ${errorDetails.message}`);
         alert("Camera initialization failed.\nError: " + err);
         if (scanBtn) scanBtn.style.display = '';
         if (cancelBtn) cancelBtn.style.display = 'none';
@@ -456,9 +491,15 @@ Optimized for:
             generateCloneQR();
           })
           .catch(err => {
-            console.error('QR scan failed:', err);
+            const errorDetails = {
+              type: err.name || 'Unknown',
+              message: err.message || 'No error message',
+              stack: err.stack || 'No stack trace',
+              timestamp: new Date().toISOString()
+            };
+            console.error('QR scan failed:', errorDetails);
+            logEntry(`File scan error: ${errorDetails.type} - ${errorDetails.message}`);
             alert('Could not decode QR code from image. Please try a clearer image.');
-            logEntry('Failed to decode QR from file');
           })
           .finally(() => {
             html5QrcodeScanner.clear();
