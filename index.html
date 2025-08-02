@@ -39,7 +39,22 @@ Optimized for:
   <meta name="theme-color" content="#00ff00">
   <link rel="stylesheet" href="style.css">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  
+  <style>
+    #format-select {
+      background: #000;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      padding: 5px;
+      margin: 5px 0;
+      width: 100%;
+      max-width: 300px;
+      font-family: monospace;
+    }
+    #format-select option {
+      background: #000;
+      color: #00ff00;
+    }
+  </style>
   <!-- Load QR code libraries -->
   <script src="qrcode.min.js"></script>
   <script src="html5-qrcode.min.js"></script>
@@ -54,6 +69,21 @@ Optimized for:
     <option value="clone" selected>Clone QR</option>
     <option value="increment">Increment</option>
     <option value="text">Text</option>
+  </select>
+  <select id="format-select" aria-label="Select barcode format">
+    <option value="QR_CODE" selected>QR Code</option>
+    <option value="AZTEC">Aztec Code</option>
+    <option value="DATA_MATRIX">Data Matrix</option>
+    <option value="PDF_417">PDF 417</option>
+    <option value="CODE_128">Code 128</option>
+    <option value="CODE_93">Code 93</option>
+    <option value="CODE_39">Code 39</option>
+    <option value="CODABAR">Codabar</option>
+    <option value="EAN_13">EAN-13</option>
+    <option value="EAN_8">EAN-8</option>
+    <option value="ITF">ITF</option>
+    <option value="UPC_A">UPC-A</option>
+    <option value="UPC_E">UPC-E</option>
   </select>
   <!-- Text mode: free text to QR code -->
   <div id="text-mode">
@@ -136,6 +166,29 @@ Optimized for:
         console.error('Invalid QR code content');
         alert('Please enter valid content for the QR code');
         return false;
+      }
+
+      // Get selected format
+      const format = document.getElementById('format-select').value;
+
+      // Format-specific validation
+      if (['UPC_A', 'UPC_E', 'EAN_13', 'EAN_8'].includes(format)) {
+        // For UPC/EAN, ensure content is numeric only
+        if (!/^\d+$/.test(text)) {
+          alert('This format requires numeric content only');
+          return false;
+        }
+        // Check specific length requirements
+        const lengths = {
+          'UPC_A': 11, // 11 digits + 1 check digit
+          'UPC_E': 7,  // 7 digits + 1 check digit
+          'EAN_13': 12, // 12 digits + 1 check digit
+          'EAN_8': 7    // 7 digits + 1 check digit
+        };
+        if (lengths[format] && text.length !== lengths[format]) {
+          alert(`${format} requires exactly ${lengths[format]} digits`);
+          return false;
+        }
       }
 
       // Check content length (QR code version 40 can store up to 7,089 numeric characters or 4,296 alphanumeric characters)
