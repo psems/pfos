@@ -118,47 +118,81 @@ Optimized for:
       logArea.value += entry + "\n";
       logArea.scrollTop = logArea.scrollHeight;
     }
+    // Helper function to generate QR codes with validation and error handling
+    function generateQRCode(text, prefix = '') {
+      // Input validation
+      if (!text || typeof text !== 'string') {
+        console.error('Invalid QR code content');
+        alert('Please enter valid content for the QR code');
+        return false;
+      }
+
+      // Check content length (QR code version 40 can store up to 7,089 numeric characters or 4,296 alphanumeric characters)
+      const maxLength = 4000; // Safe limit for all types
+      if (text.length > maxLength) {
+        console.error('QR code content too long');
+        alert(`QR code content must be less than ${maxLength} characters`);
+        return false;
+      }
+
+      try {
+        clearQR();
+        qr = new QRCode(document.getElementById("qr"), {
+          text: text,
+          width: 256,
+          height: 256,
+          colorDark: "#00ff00",
+          colorLight: "#000000",
+          correctLevel: QRCode.CorrectLevel.H, // Highest error correction level
+          quietZone: 10, // Add quiet zone for better scanning
+          quietZoneColor: "#000000"
+        });
+        currentValue = text;
+        logEntry(prefix + text);
+        return true;
+      } catch (error) {
+        console.error('QR code generation failed:', error);
+        alert('Failed to generate QR code. Please try again with different content.');
+        return false;
+      }
+    }
+
     // Generate a QR code from text input
     function generateTextQR() {
       isIncrementMode = false;
-      const text = document.getElementById('text-input').value;
-      currentValue = text;
-      clearQR();
-      qr = new QRCode(document.getElementById("qr"), {
-        text: text,
-        width: 256,
-        height: 256,
-        colorDark: "#00ff00",
-        colorLight: "#000000"
-      });
-      logEntry(text);
+      const text = document.getElementById('text-input').value.trim();
+      generateQRCode(text);
     }
+
     // Start increment mode and generate the first QR code
     function startIncrementQR() {
+      const startNum = document.getElementById('start-number').value;
+      const step = document.getElementById('increment-step').value;
+      
+      // Validate numeric inputs
+      if (!startNum || !step || isNaN(startNum) || isNaN(step)) {
+        alert('Please enter valid numbers for start and step values');
+        return;
+      }
+
       isIncrementMode = true;
-      currentNumber = parseInt(document.getElementById('start-number').value, 10);
-      incrementStep = parseInt(document.getElementById('increment-step').value, 10);
+      currentNumber = parseInt(startNum, 10);
+      incrementStep = parseInt(step, 10);
       generateIncrementQR();
     }
+
     // Generate a QR code for the current increment value
     function generateIncrementQR() {
-      currentValue = currentNumber.toString();
-      clearQR();
-      qr = new QRCode(document.getElementById("qr"), {
-        text: currentValue,
-        width: 256,
-        height: 256,
-        colorDark: "#00ff00",
-        colorLight: "#000000"
-      });
-      logEntry(currentValue);
+      generateQRCode(currentNumber.toString());
     }
+
     // Mark the current QR code in the log
     function markCurrent() {
       if (currentValue !== '') {
         logEntry(currentValue, true);
       }
     }
+
     // Download the log as a text file
     function downloadLog() {
       const blob = new Blob([logArea.value], { type: 'text/plain' });
@@ -169,19 +203,11 @@ Optimized for:
       a.click();
       URL.revokeObjectURL(url);
     }
+
     // Generate a QR code from the clone input (scanned or edited)
     function generateCloneQR() {
-      const text = document.getElementById('clone-input').value;
-      currentValue = text;
-      clearQR();
-      qr = new QRCode(document.getElementById("qr"), {
-        text: text,
-        width: 256,
-        height: 256,
-        colorDark: "#00ff00",
-        colorLight: "#000000"
-      });
-      logEntry("Cloned: " + text);
+      const text = document.getElementById('clone-input').value.trim();
+      generateQRCode(text, 'Cloned: ');
     }
     // Increment the value and generate the next QR code
     function incrementAndGenerateQR() {
