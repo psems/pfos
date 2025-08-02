@@ -148,14 +148,15 @@ Optimized for:
 
       try {
         clearQR();
+        const encodedText = encodeURIComponent(text);  // Ensure consistent UTF-8 encoding
         qr = new QRCode(document.getElementById("qr"), {
-          text: text,
+          text: encodedText,
           width: 256,
           height: 256,
           colorDark: "#00ff00",
           colorLight: "#000000",
-          correctLevel: QRCode.CorrectLevel.H, // Highest error correction level
-          quietZone: 10, // Add quiet zone for better scanning
+          correctLevel: QRCode.CorrectLevel.M, // Medium error correction for better compatibility
+          quietZone: 10,
           quietZoneColor: "#000000"
         });
         currentValue = text;
@@ -437,8 +438,9 @@ Optimized for:
             Html5QrcodeSupportedFormats.UPC_E
           ]
         }, (qrCodeMessage, decodedResult) => {
-          // Try to clean up the scanned data if needed
-          const cleanedMessage = qrCodeMessage.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+          // Decode and clean up the scanned data
+          const decodedMessage = decodeURIComponent(qrCodeMessage.trim());
+          const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
           document.getElementById('clone-input').value = cleanedMessage;
           // Get the format of the scanned code
           const format = decodedResult.result.format.formatName || 'Unknown';
@@ -560,7 +562,8 @@ Optimized for:
         
         html5QrcodeScanner.scanFile(file, true)
           .then((decodedText, decodedResult) => {
-            const cleanedMessage = decodedText.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            const decodedMessage = decodeURIComponent(decodedText.trim());
+            const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
             const format = decodedResult.result.format.formatName || 'Unknown';
             document.getElementById('clone-input').value = cleanedMessage;
             generateQRCode(cleanedMessage, `Cloned from file [Format: ${format}]: `);
