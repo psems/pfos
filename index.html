@@ -438,8 +438,14 @@ Optimized for:
             Html5QrcodeSupportedFormats.UPC_E
           ]
         }, (qrCodeMessage, decodedResult) => {
-          // Decode and clean up the scanned data
-          const decodedMessage = decodeURIComponent(qrCodeMessage.trim());
+          // Try to decode if it's URL encoded, otherwise use as-is
+          let decodedMessage;
+          try {
+            decodedMessage = decodeURIComponent(qrCodeMessage.trim());
+          } catch (e) {
+            // If decoding fails, use the original message
+            decodedMessage = qrCodeMessage.trim();
+          }
           const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
           document.getElementById('clone-input').value = cleanedMessage;
           // Get the format of the scanned code
@@ -562,7 +568,14 @@ Optimized for:
         
         html5QrcodeScanner.scanFile(file, true)
           .then((decodedText, decodedResult) => {
-            const decodedMessage = decodeURIComponent(decodedText.trim());
+            // Try to decode if it's URL encoded, otherwise use as-is
+            let decodedMessage;
+            try {
+              decodedMessage = decodeURIComponent(decodedText.trim());
+            } catch (e) {
+              // If decoding fails, use the original message
+              decodedMessage = decodedText.trim();
+            }
             const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
             const format = decodedResult.result.format.formatName || 'Unknown';
             document.getElementById('clone-input').value = cleanedMessage;
