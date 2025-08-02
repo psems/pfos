@@ -8,6 +8,42 @@ Hacker/terminal theme, mobile-first, accessible, and cross-browser optimized.
 #cancel-scan-btn.hidden {
   display: none;
 }
+
+/* File upload styling */
+.upload-section {
+  margin: 15px 0;
+  padding: 10px;
+  border: 2px dashed #00ff00;
+  border-radius: 4px;
+  text-align: center;
+  background: rgba(0, 255, 0, 0.1);
+}
+
+.file-upload-label {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #00ff00;
+  color: #000000;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.file-format-hint {
+  display: block;
+  font-size: 0.8em;
+  color: #00ff00;
+  margin-top: 5px;
+}
+
+#clone-file-input {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
 body {
   /* Main app container */
   font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
