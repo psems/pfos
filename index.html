@@ -360,10 +360,12 @@ Optimized for:
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E
           ]
-        }, qrCodeMessage => {
+        }, (qrCodeMessage, decodedResult) => {
           // Try to clean up the scanned data if needed
           const cleanedMessage = qrCodeMessage.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
           document.getElementById('clone-input').value = cleanedMessage;
+          // Get the format of the scanned code
+          const format = decodedResult.result.format.formatName || 'Unknown';
           // Try to get geolocation and log with QR
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
@@ -381,22 +383,22 @@ Optimized for:
                   } else {
                     address = ' [Address unavailable]';
                   }
-                  logEntry(`Cloned: ${qrCodeMessage} ${loc}${address}`);
+                  logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] ${loc}${address}`);
                   generateCloneQR();
                   stopCamera();
                 })
                 .catch(() => {
-                  logEntry(`Cloned: ${qrCodeMessage} ${loc} [Address lookup failed]`);
+                  logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] ${loc} [Address lookup failed]`);
                   generateCloneQR();
                   stopCamera();
                 });
             }, function(err) {
-              logEntry(`Cloned: ${qrCodeMessage} [Location unavailable]`);
+              logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] [Location unavailable]`);
               generateCloneQR();
               stopCamera();
             }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
           } else {
-            logEntry(`Cloned: ${qrCodeMessage} [Location unsupported]`);
+            logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] [Location unsupported]`);
             generateCloneQR();
             stopCamera();
           }
@@ -484,10 +486,11 @@ Optimized for:
         const html5QrcodeScanner = new Html5Qrcode("reader");
         
         html5QrcodeScanner.scanFile(file, true)
-          .then(qrCodeMessage => {
-            const cleanedMessage = qrCodeMessage.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+          .then((decodedText, decodedResult) => {
+            const cleanedMessage = decodedText.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            const format = decodedResult.result.format.formatName || 'Unknown';
             document.getElementById('clone-input').value = cleanedMessage;
-            logEntry(`Cloned from file: ${cleanedMessage}`);
+            logEntry(`Cloned from file: ${cleanedMessage} [Format: ${format}]`);
             generateCloneQR();
           })
           .catch(err => {
