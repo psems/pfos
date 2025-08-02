@@ -261,11 +261,87 @@ Optimized for:
       }
     });
 
+    // Request and monitor permissions
+    async function requestPermissions() {
+      const permissions = [];
+      let permissionStatus = {
+        camera: 'unknown',
+        location: 'unknown'
+      };
+
+      // Check and request camera permission
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        permissions.push(
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(() => {
+              permissionStatus.camera = 'granted';
+              logEntry('Camera permission granted');
+            })
+            .catch(err => {
+              permissionStatus.camera = 'denied';
+              logEntry('Camera permission denied or not available: ' + err.message);
+            })
+        );
+      }
+
+      // Check and request location permission
+      if (navigator.geolocation) {
+        permissions.push(
+          new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              () => {
+                permissionStatus.location = 'granted';
+                logEntry('Location permission granted');
+                resolve();
+              },
+              (err) => {
+                permissionStatus.location = 'denied';
+                logEntry('Location permission denied or not available: ' + err.message);
+                resolve();
+              },
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+          })
+        );
+      }
+
+      // Monitor permission changes if supported
+      if (navigator.permissions) {
+        try {
+          const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+          cameraPermission.addEventListener('change', () => {
+            logEntry(`Camera permission changed to: ${cameraPermission.state}`);
+            permissionStatus.camera = cameraPermission.state;
+          });
+        } catch (e) {
+          console.log('Camera permission monitoring not supported');
+        }
+
+        try {
+          const locationPermission = await navigator.permissions.query({ name: 'geolocation' });
+          locationPermission.addEventListener('change', () => {
+            logEntry(`Location permission changed to: ${locationPermission.state}`);
+            permissionStatus.location = locationPermission.state;
+          });
+        } catch (e) {
+          console.log('Location permission monitoring not supported');
+        }
+      }
+
+      await Promise.allSettled(permissions);
+      return permissionStatus;
+    }
+
     // Initialize the application and generate default QR code
     window.addEventListener('DOMContentLoaded', () => {
       // Set default values
       const defaultMode = 'clone';
       const defaultCloneText = 'CLONE ME!';
+      
+      // Request permissions early
+      requestPermissions().then(status => {
+        logEntry(`Initial permissions - Camera: ${status.camera}, Location: ${status.location}`);
+      });
       
       // Initialize UI state
       document.getElementById('mode-select').value = defaultMode;
@@ -383,23 +459,20 @@ Optimized for:
                   } else {
                     address = ' [Address unavailable]';
                   }
-                  logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] ${loc}${address}`);
-                  generateCloneQR();
+                  generateQRCode(cleanedMessage, `Cloned [Format: ${format}] ${loc}${address}: `);
                   stopCamera();
                 })
                 .catch(() => {
-                  logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] ${loc} [Address lookup failed]`);
-                  generateCloneQR();
+                  generateQRCode(cleanedMessage, `Cloned [Format: ${format}] ${loc} [Address lookup failed]: `);
                   stopCamera();
                 });
             }, function(err) {
-              logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] [Location unavailable]`);
-              generateCloneQR();
+              generateQRCode(cleanedMessage, `Cloned [Format: ${format}] [Location unavailable]: `);
               stopCamera();
             }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
           } else {
-            logEntry(`Cloned: ${qrCodeMessage} [Format: ${format}] [Location unsupported]`);
-            generateCloneQR();
+            generateQRCode(cleanedMessage, `Cloned [Format: ${format}] [Location unsupported]: `);
+            stopCamera();
             stopCamera();
           }
         }).catch(err => {
@@ -490,8 +563,7 @@ Optimized for:
             const cleanedMessage = decodedText.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
             const format = decodedResult.result.format.formatName || 'Unknown';
             document.getElementById('clone-input').value = cleanedMessage;
-            logEntry(`Cloned from file: ${cleanedMessage} [Format: ${format}]`);
-            generateCloneQR();
+            generateQRCode(cleanedMessage, `Cloned from file [Format: ${format}]: `);
           })
           .catch(err => {
             const errorDetails = {
