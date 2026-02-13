@@ -68,6 +68,8 @@ input, button, select, textarea {
   outline: none;
   transition: border 0.2s;
   box-sizing: border-box;
+}
+button, select {
   text-transform: uppercase;
 }
 input:focus, textarea:focus, select:focus {
