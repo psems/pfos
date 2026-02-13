@@ -68,6 +68,8 @@ input, button, select, textarea {
   outline: none;
   transition: border 0.2s;
   box-sizing: border-box;
+}
+button, select {
   text-transform: uppercase;
 }
 input:focus, textarea:focus, select:focus {
@@ -104,6 +106,30 @@ button:hover {
   color: #000;
   border-color: #b6ff00;
 }
+/* Format selector */
+#format-select {
+  background: #000;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  padding: 5px;
+  margin: 5px 0;
+  width: 100%;
+  max-width: 300px;
+  font-family: monospace;
+}
+#format-select option {
+  background: #000;
+  color: #00ff00;
+}
+
+/* Barcode SVG display */
+#barcode {
+  display: none;
+  max-width: 100%;
+  height: auto;
+  margin: 20px auto;
+}
+
 #qr {
   /* QR code display container, mobile-optimized */
   margin: 20px auto;
@@ -173,6 +199,91 @@ select#mode-select option {
   margin: 0.5em auto;
   max-width: 320px;
 }
+/* === Test page (test-qr.html) === */
+.test-page {
+  text-align: left;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.test-page h2 {
+  margin-bottom: 0.3em;
+}
+.test-group {
+  margin: 0.5em 0;
+  padding: 8px 12px;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+.test-group label.group-label {
+  font-weight: bold;
+  cursor: pointer;
+  display: block;
+  margin-bottom: 4px;
+}
+.test-items {
+  padding-left: 1.5em;
+}
+.test-items label {
+  display: block;
+  padding: 2px 0;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.test-items label:hover {
+  color: #00ff88;
+}
+input[type="checkbox"] {
+  accent-color: #00ff00;
+  margin-right: 6px;
+  width: auto;
+}
+.controls {
+  margin: 1em 0;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.run-btn {
+  border-color: #00ff88;
+}
+.test-result {
+  padding: 6px 12px;
+  margin: 3px 0;
+  border-left: 4px solid #555;
+  background: #0a0a0a;
+  font-size: 0.9em;
+}
+.test-result.pass {
+  border-left-color: #00ff00;
+}
+.test-result.fail {
+  border-left-color: #ff0000;
+  color: #ff4444;
+}
+#summary {
+  margin-top: 1em;
+  padding: 12px;
+  border: 2px solid #00ff00;
+  font-size: 1.1em;
+}
+#summary.all-pass {
+  border-color: #00ff00;
+}
+#summary.has-fail {
+  border-color: #ff0000;
+  color: #ff4444;
+}
+#progress {
+  margin: 0.5em 0;
+  min-height: 1.2em;
+}
+#test-workspace {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+}
+
 /* Responsive tweaks for mobile */
 @media (max-width: 480px) {
   #reader, #qr, input, button, select, textarea#log {
