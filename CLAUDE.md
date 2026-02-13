@@ -12,8 +12,9 @@ This is a **static HTML/CSS/JS application** with a flat file structure:
 
 ```
 pfos/
-├── index.html            # Entire application: markup + all JS logic (~730 lines)
+├── index.html            # Entire application: markup + all JS logic (~670 lines)
 ├── style.css             # All styles, hacker/terminal theme (~186 lines)
+├── test-qr.html          # QR code round-trip validation tests (open in browser)
 ├── service-worker.js     # PWA offline caching (~34 lines)
 ├── manifest.json         # PWA manifest
 ├── qrcode.min.js         # QR code generation library (self-hosted, MIT)
@@ -29,7 +30,7 @@ All application logic lives in `index.html` inside two `<script>` tags. There ar
 ## Key Technical Facts
 
 - **No build system.** No `package.json`, no bundler, no transpiler. Open `index.html` in a browser to run.
-- **No automated tests.** No test framework, no test files.
+- **Browser-based tests.** `test-qr.html` provides QR round-trip, barcode generation, and input validation tests. Open in a browser to run.
 - **No linter/formatter config.** No `.eslintrc`, `.prettierrc`, or similar.
 - **No CI/CD.** No GitHub Actions or other pipeline configuration.
 - **Vanilla JavaScript (ES6+).** No frameworks, no TypeScript.
@@ -38,26 +39,26 @@ All application logic lives in `index.html` inside two `<script>` tags. There ar
 
 ## Code Organization in index.html
 
-All JavaScript is in `index.html` between lines 138–730. Key functions:
+All JavaScript is in `index.html` between lines 138–671. Key functions:
 
-| Function | Line | Purpose |
-|---|---|---|
-| `clearQR()` | 148 | Clears QR/barcode display areas |
-| `logEntry()` | 153 | Appends timestamped entries to the log textarea |
-| `generateQRCode(text, prefix)` | 169 | Core generation function — handles all formats, validation, 1D/2D dispatch |
-| `generateTextQR()` | 285 | Text mode entry point |
-| `startIncrementQR()` | 292 | Validates and starts increment mode |
-| `generateIncrementQR()` | 309 | Generates QR for current increment value |
-| `markCurrent()` | 314 | Marks current entry in log |
-| `downloadLog()` | 321 | Exports log as `.txt` file download |
-| `generateCloneQR()` | 332 | Clone mode entry point |
-| `incrementAndGenerateQR()` | 337 | Increments counter and regenerates |
-| `updateGenerateButtonText()` | 345 | Updates button labels when format changes |
-| `requestPermissions()` | 392 | Async request for camera + location permissions |
-| `DOMContentLoaded` handler | 463 | App initialization, default state setup |
-| `startCamera()` | 512 | Initializes camera scanner with Html5Qrcode |
-| `stopCamera()` | 652 | Stops camera and cleans up scanner |
-| File upload handler | 686 | Processes QR images uploaded via file input |
+| Function | Purpose |
+|---|---|
+| `clearQR()` | Clears QR/barcode display areas |
+| `logEntry()` | Appends timestamped entries to the log textarea |
+| `generateQRCode(text, prefix)` | Core generation function — handles all formats, validation, 1D/2D dispatch |
+| `generateTextQR()` | Text mode entry point |
+| `startIncrementQR()` | Validates and starts increment mode |
+| `generateIncrementQR()` | Generates QR for current increment value |
+| `markCurrent()` | Marks current entry in log |
+| `downloadLog()` | Exports log as `.txt` file download |
+| `generateCloneQR()` | Clone mode entry point |
+| `incrementAndGenerateQR()` | Increments counter and regenerates |
+| `updateGenerateButtonText()` | Updates button labels when format changes |
+| `checkPermissions()` | Passive permission check via `navigator.permissions.query()` (no browser prompts) |
+| `DOMContentLoaded` handler | App initialization, default state setup |
+| `startCamera()` | Initializes camera scanner with Html5Qrcode |
+| `stopCamera()` | Stops camera and cleans up scanner |
+| File upload handler | Processes QR images uploaded via file input |
 
 ## Application Modes
 
@@ -82,7 +83,7 @@ HTTPS is required for camera and geolocation features to work in production.
 
 ### Making changes
 - **UI/markup:** Edit `index.html` (HTML structure is lines 1–129)
-- **Application logic:** Edit `index.html` (JavaScript is lines 138–730)
+- **Application logic:** Edit `index.html` (JavaScript is lines 138–671)
 - **Styles:** Edit `style.css`
 - **PWA caching:** Edit `service-worker.js` — update `CACHE_NAME` when cached assets change
 - **Libraries:** `qrcode.min.js` and `html5-qrcode.min.js` are vendored minified files in the repo root. Do not edit them directly.
@@ -101,13 +102,18 @@ Copy all files to any static hosting (GitHub Pages, Netlify, S3, etc.). No build
 - **Input validation:** `generateQRCode()` validates format-specific requirements (numeric-only for UPC/EAN, length constraints, max 4000 chars).
 - **Error handling:** Try/catch around QR generation and camera operations. Errors logged to console and shown via `alert()`.
 
+### Running tests
+Open `test-qr.html` in a browser and click "Run All Tests". Tests cover:
+- QR code round-trip (generate then scan back) for text, URLs, unicode, special characters, etc.
+- 1D barcode generation (Code128, Code39, EAN-13, EAN-8, UPC-A, ITF, Codabar, Code93)
+- Input validation (length checks, numeric-only for UPC/EAN, max character limits)
+
 ## Common Pitfalls
 
-- The `qr` variable (line 141) is a global that holds the current QRCode instance. It gets overwritten on each generation.
-- `encodeURIComponent` is applied to QR Code format text but not other 2D formats (line 262). This is intentional for QR Code URI compatibility.
-- `stopCamera()` is called redundantly in some paths (e.g., line 614 has a duplicate call). This is harmless but notable.
+- The `qr` variable is a global that holds the current QRCode instance. It gets overwritten on each generation.
 - The service worker cache version (`pfos-cache-v1`) must be manually bumped when assets change, or users may see stale content.
 - JsBarcode is the only CDN dependency — if offline support for 1D barcodes is needed, it must be vendored like the other libraries.
+- Permissions are checked passively via `navigator.permissions.query()`. Camera is only activated when the user clicks "Scan QR Code". Location is only requested after a successful scan.
 
 ## Dependencies
 

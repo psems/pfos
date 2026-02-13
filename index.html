@@ -214,7 +214,6 @@ Optimized for:
 
       try {
         clearQR();
-        const encodedText = encodeURIComponent(text);  // Ensure consistent UTF-8 encoding
 
         // Determine code type and format
         const oneDFormats = {
@@ -259,7 +258,7 @@ Optimized for:
           // Handle QR Code and other 2D codes
           document.getElementById('qr').style.display = 'block';
           qr = new QRCode(document.getElementById("qr"), {
-            text: format === 'QR_CODE' ? encodedText : text,
+            text: text,
             width: 256,
             height: 256,
             colorDark: "#00ff00",
@@ -388,74 +387,37 @@ Optimized for:
       }
     });
 
-    // Request and monitor permissions
-    async function requestPermissions() {
-      const permissions = [];
+    // Check permissions passively without triggering browser prompts
+    async function checkPermissions() {
       let permissionStatus = {
         camera: 'unknown',
         location: 'unknown'
       };
 
-      // Check and request camera permission
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        permissions.push(
-          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(() => {
-              permissionStatus.camera = 'granted';
-              logEntry('Camera permission granted');
-            })
-            .catch(err => {
-              permissionStatus.camera = 'denied';
-              logEntry('Camera permission denied or not available: ' + err.message);
-            })
-        );
-      }
-
-      // Check and request location permission
-      if (navigator.geolocation) {
-        permissions.push(
-          new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              () => {
-                permissionStatus.location = 'granted';
-                logEntry('Location permission granted');
-                resolve();
-              },
-              (err) => {
-                permissionStatus.location = 'denied';
-                logEntry('Location permission denied or not available: ' + err.message);
-                resolve();
-              },
-              { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
-          })
-        );
-      }
-
-      // Monitor permission changes if supported
       if (navigator.permissions) {
         try {
           const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+          permissionStatus.camera = cameraPermission.state;
           cameraPermission.addEventListener('change', () => {
             logEntry(`Camera permission changed to: ${cameraPermission.state}`);
             permissionStatus.camera = cameraPermission.state;
           });
         } catch (e) {
-          console.log('Camera permission monitoring not supported');
+          console.log('Camera permission query not supported');
         }
 
         try {
           const locationPermission = await navigator.permissions.query({ name: 'geolocation' });
+          permissionStatus.location = locationPermission.state;
           locationPermission.addEventListener('change', () => {
             logEntry(`Location permission changed to: ${locationPermission.state}`);
             permissionStatus.location = locationPermission.state;
           });
         } catch (e) {
-          console.log('Location permission monitoring not supported');
+          console.log('Location permission query not supported');
         }
       }
 
-      await Promise.allSettled(permissions);
       return permissionStatus;
     }
 
@@ -467,9 +429,9 @@ Optimized for:
       const defaultMode = 'clone';
       const defaultCloneText = 'CLONE ME!';
       
-      // Request permissions early
-      requestPermissions().then(status => {
-        logEntry(`Initial permissions - Camera: ${status.camera}, Location: ${status.location}`);
+      // Check permissions passively (no browser prompts)
+      checkPermissions().then(status => {
+        logEntry(`Permissions - Camera: ${status.camera}, Location: ${status.location}`);
       });
       
       // Initialize UI state
@@ -568,15 +530,7 @@ Optimized for:
             Html5QrcodeSupportedFormats.UPC_E
           ]
         }, (qrCodeMessage, decodedResult) => {
-          // Try to decode if it's URL encoded, otherwise use as-is
-          let decodedMessage;
-          try {
-            decodedMessage = decodeURIComponent(qrCodeMessage.trim());
-          } catch (e) {
-            // If decoding fails, use the original message
-            decodedMessage = qrCodeMessage.trim();
-          }
-          const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+          const cleanedMessage = qrCodeMessage.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
           document.getElementById('clone-input').value = cleanedMessage;
           // Get the format of the scanned code
           const format = decodedResult.result.format.formatName || 'Unknown';
@@ -610,7 +564,6 @@ Optimized for:
             }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
           } else {
             generateQRCode(cleanedMessage, `Cloned [Format: ${format}] [Location unsupported]: `);
-            stopCamera();
             stopCamera();
           }
         }).catch(err => {
@@ -653,32 +606,27 @@ Optimized for:
       const readerDiv = document.getElementById('reader');
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
+      const isCloneMode = document.getElementById('mode-select').value === 'clone';
+
+      function resetButtons() {
+        if (readerDiv) readerDiv.innerHTML = '';
+        if (scanBtn) scanBtn.style.display = isCloneMode ? '' : 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (!isCloneMode && readerDiv) readerDiv.classList.add('hidden');
+      }
+
       if (scanner) {
         scanner.stop().then(() => {
           scanner.clear();
           scanner = null;
-          if (readerDiv) readerDiv.innerHTML = '';
-          if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) cancelBtn.style.display = '';
+          resetButtons();
         }).catch(err => {
           console.error('Camera stop error:', err);
           scanner = null;
-          if (readerDiv) readerDiv.innerHTML = '';
-          if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-          if (cancelBtn) cancelBtn.style.display = '';
+          resetButtons();
         });
       } else {
-        if (readerDiv) readerDiv.innerHTML = '';
-        if (scanBtn && document.getElementById('mode-select').value === 'clone') scanBtn.style.display = '';
-        if (cancelBtn) cancelBtn.style.display = '';
-      }
-      if (readerDiv && document.getElementById('mode-select').value !== 'clone') {
-        readerDiv.classList.add('hidden');
-      }
-      if (scanBtn && document.getElementById('mode-select').value !== 'clone') scanBtn.style.display = 'none';
-      if (cancelBtn && document.getElementById('mode-select').value !== 'clone') {
-        cancelBtn.classList.add('hidden');
-        cancelBtn.style.display = 'none';
+        resetButtons();
       }
     }
 
@@ -697,19 +645,10 @@ Optimized for:
         const html5QrcodeScanner = new Html5Qrcode("reader");
         
         html5QrcodeScanner.scanFile(file, true)
-          .then((decodedText, decodedResult) => {
-            // Try to decode if it's URL encoded, otherwise use as-is
-            let decodedMessage;
-            try {
-              decodedMessage = decodeURIComponent(decodedText.trim());
-            } catch (e) {
-              // If decoding fails, use the original message
-              decodedMessage = decodedText.trim();
-            }
-            const cleanedMessage = decodedMessage.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-            const format = decodedResult.result.format.formatName || 'Unknown';
+          .then(decodedText => {
+            const cleanedMessage = decodedText.trim().replace(/[\x00-\x1F\x7F-\x9F]/g, '');
             document.getElementById('clone-input').value = cleanedMessage;
-            generateQRCode(cleanedMessage, `Cloned from file [Format: ${format}]: `);
+            generateQRCode(cleanedMessage, 'Cloned from file: ');
           })
           .catch(err => {
             const errorDetails = {
