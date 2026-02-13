@@ -124,7 +124,7 @@ button:hover {
 
 /* Barcode SVG display */
 #barcode {
-  display: none;
+  display: block;
   max-width: 100%;
   height: auto;
   margin: 20px auto;
@@ -282,6 +282,9 @@ button.run-btn {
   position: absolute;
   left: -9999px;
   top: 0;
+}
+#test-scanner {
+  display: none;
 }
 
 /* Responsive tweaks for mobile */
