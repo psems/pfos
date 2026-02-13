@@ -69,6 +69,9 @@ input, button, select, textarea {
   transition: border 0.2s;
   box-sizing: border-box;
 }
+input, textarea {
+  text-transform: none;
+}
 button, select {
   text-transform: uppercase;
 }
