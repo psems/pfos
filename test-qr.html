@@ -1,8 +1,8 @@
 <!--
   PFOS QR Code Validation Test Page
   ==================================
-  Generates QR codes with known content and scans them back using html5-qrcode
-  to verify round-trip correctness. Open in a browser to run.
+  Generates QR codes and barcodes, then validates them.
+  Select which test groups to run, then click Run.
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -10,86 +10,166 @@
   <meta charset="UTF-8">
   <title>PFOS - QR Code Validation Tests</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: 'Fira Mono', 'Consolas', 'Courier New', monospace;
-      background: #000;
-      color: #00ff00;
-      padding: 1em;
-    }
-    h2 { text-shadow: 0 0 12px #00ff00; }
-    .test-result {
-      padding: 8px 12px;
-      margin: 4px 0;
-      border-left: 4px solid #555;
-      background: #0a0a0a;
-    }
-    .test-result.pass { border-left-color: #00ff00; }
-    .test-result.fail { border-left-color: #ff0000; color: #ff4444; }
-    .test-result.skip { border-left-color: #ffaa00; color: #ffaa00; }
-    #summary {
-      margin-top: 1em;
-      padding: 12px;
-      border: 2px solid #00ff00;
-      font-size: 1.2em;
-    }
-    #summary.all-pass { border-color: #00ff00; }
-    #summary.has-fail { border-color: #ff0000; color: #ff4444; }
-    #test-workspace { position: absolute; left: -9999px; top: 0; }
-    button {
-      background: #111;
-      color: #00ff00;
-      border: 1px solid #00ff00;
-      padding: 0.5em 1em;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 1em;
-      margin: 0.5em;
-    }
-    button:hover { background: #003300; }
-    #progress { margin: 1em 0; }
-  </style>
+  <link rel="stylesheet" href="style.css">
   <script src="qrcode.min.js"></script>
   <script src="html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
-<body>
+<body class="test-page">
   <h2>PFOS QR Validation Tests</h2>
-  <button id="run-btn" onclick="runAllTests()">Run All Tests</button>
+
+  <div class="controls">
+    <button onclick="selectAll(true)">Select All</button>
+    <button onclick="selectAll(false)">Deselect All</button>
+  </div>
+
+  <div id="test-selection"></div>
+
+  <div class="controls">
+    <button class="run-btn" id="run-btn" onclick="runSelected()">Run Selected Tests</button>
+  </div>
+
   <div id="progress"></div>
   <div id="results"></div>
   <div id="summary"></div>
-  <!-- Off-screen workspace for generating QR codes -->
+
   <div id="test-workspace">
     <div id="test-qr"></div>
     <svg id="test-barcode"></svg>
+    <div id="test-scanner" style="display:none"></div>
   </div>
 
   <script>
+    // ── Test Definitions ──
+
+    const testGroups = [
+      {
+        id: 'qr-roundtrip',
+        label: 'QR Code Round-Trip',
+        tests: [
+          { id: 'qr-simple',   name: 'Simple text',            type: 'qr', input: 'Hello World' },
+          { id: 'qr-url',      name: 'URL',                    type: 'qr', input: 'https://github.com/psems/pfos' },
+          { id: 'qr-numeric',  name: 'Numeric',                type: 'qr', input: '1234567890' },
+          { id: 'qr-special',  name: 'Special characters',     type: 'qr', input: 'Test!@#$%^&*()' },
+          { id: 'qr-sentence', name: 'Spaces and punctuation', type: 'qr', input: 'The quick brown fox jumps over the lazy dog.' },
+          { id: 'qr-unicode',  name: 'Unicode',                type: 'qr', input: 'Caf\u00e9 na\u00efve r\u00e9sum\u00e9' },
+          { id: 'qr-long',     name: 'Long text (200 chars)',  type: 'qr', input: 'A'.repeat(200) },
+          { id: 'qr-single',   name: 'Single character',       type: 'qr', input: 'X' },
+          { id: 'qr-case',     name: 'Mixed case',             type: 'qr', input: 'AbCdEfGhIjKlMnOpQrStUvWxYz' },
+          { id: 'qr-newline',  name: 'Newlines',               type: 'qr', input: 'Line1\nLine2\nLine3' },
+          { id: 'qr-json',     name: 'JSON-like',              type: 'qr', input: '{"key":"value","num":42}' },
+          { id: 'qr-email',    name: 'Email',                  type: 'qr', input: 'user@example.com' },
+          { id: 'qr-ws',       name: 'Whitespace preserved',   type: 'qr', input: '  leading and trailing  ' },
+        ]
+      },
+      {
+        id: 'barcode-gen',
+        label: '1D Barcode Generation',
+        tests: [
+          { id: 'bc-c128-alpha', name: 'Code128 alphanumeric', type: 'barcode', input: 'ABC-123',      format: 'CODE128' },
+          { id: 'bc-c128-text',  name: 'Code128 text',         type: 'barcode', input: 'Hello World',   format: 'CODE128' },
+          { id: 'bc-c39',        name: 'Code39 uppercase',     type: 'barcode', input: 'HELLO123',      format: 'CODE39' },
+          { id: 'bc-ean13',      name: 'EAN-13',               type: 'barcode', input: '590123412345',  format: 'EAN13' },
+          { id: 'bc-ean8',       name: 'EAN-8',                type: 'barcode', input: '9638507',       format: 'EAN8' },
+          { id: 'bc-upca',       name: 'UPC-A',                type: 'barcode', input: '01234567890',   format: 'UPC' },
+          { id: 'bc-itf',        name: 'ITF even digits',      type: 'barcode', input: '12345678',      format: 'ITF' },
+          { id: 'bc-codabar',    name: 'Codabar',              type: 'barcode', input: 'A12345B',       format: 'codabar' },
+          { id: 'bc-c93',        name: 'Code93',               type: 'barcode', input: 'TEST93',        format: 'CODE93' },
+        ]
+      },
+      {
+        id: 'validation',
+        label: 'Input Validation',
+        tests: [
+          { id: 'v-empty',       name: 'Empty string rejected',     type: 'validate', input: '',              format: 'QR_CODE', expect: false },
+          { id: 'v-normal',      name: 'Normal text accepted',      type: 'validate', input: 'Hello',         format: 'QR_CODE', expect: true },
+          { id: 'v-ean13-ok',    name: 'EAN-13 correct length',     type: 'validate', input: '590123412345',  format: 'EAN_13',  expect: true },
+          { id: 'v-ean13-short', name: 'EAN-13 wrong length',       type: 'validate', input: '12345',         format: 'EAN_13',  expect: false },
+          { id: 'v-ean13-alpha', name: 'EAN-13 non-numeric',        type: 'validate', input: 'ABCDEFGHIJKL',  format: 'EAN_13',  expect: false },
+          { id: 'v-upca-ok',     name: 'UPC-A correct length',      type: 'validate', input: '01234567890',   format: 'UPC_A',   expect: true },
+          { id: 'v-upca-short',  name: 'UPC-A wrong length',        type: 'validate', input: '123',           format: 'UPC_A',   expect: false },
+          { id: 'v-ean8-ok',     name: 'EAN-8 correct length',      type: 'validate', input: '9638507',       format: 'EAN_8',   expect: true },
+          { id: 'v-over4000',    name: 'Over 4000 chars rejected',  type: 'validate', input: 'X'.repeat(4001),format: 'QR_CODE', expect: false },
+          { id: 'v-at4000',      name: 'Exactly 4000 chars ok',     type: 'validate', input: 'X'.repeat(4000),format: 'QR_CODE', expect: true },
+        ]
+      }
+    ];
+
+    // ── Build Checkboxes ──
+
+    const selectionDiv = document.getElementById('test-selection');
+
+    testGroups.forEach(group => {
+      const groupDiv = document.createElement('div');
+      groupDiv.className = 'test-group';
+
+      const groupLabel = document.createElement('label');
+      groupLabel.className = 'group-label';
+      const groupCb = document.createElement('input');
+      groupCb.type = 'checkbox';
+      groupCb.checked = true;
+      groupCb.dataset.group = group.id;
+      groupCb.addEventListener('change', () => {
+        groupDiv.querySelectorAll('.test-items input[type="checkbox"]').forEach(cb => {
+          cb.checked = groupCb.checked;
+        });
+      });
+      groupLabel.appendChild(groupCb);
+      groupLabel.appendChild(document.createTextNode(` ${group.label} (${group.tests.length})`));
+      groupDiv.appendChild(groupLabel);
+
+      const itemsDiv = document.createElement('div');
+      itemsDiv.className = 'test-items';
+      group.tests.forEach(test => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = true;
+        cb.dataset.testId = test.id;
+        cb.addEventListener('change', () => {
+          const allItems = itemsDiv.querySelectorAll('input[type="checkbox"]');
+          const allChecked = Array.from(allItems).every(c => c.checked);
+          const someChecked = Array.from(allItems).some(c => c.checked);
+          groupCb.checked = allChecked;
+          groupCb.indeterminate = someChecked && !allChecked;
+        });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(` ${test.name}`));
+        itemsDiv.appendChild(label);
+      });
+      groupDiv.appendChild(itemsDiv);
+      selectionDiv.appendChild(groupDiv);
+    });
+
+    function selectAll(checked) {
+      selectionDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = checked;
+        cb.indeterminate = false;
+      });
+    }
+
+    // ── Test Runners ──
+
     const resultsDiv = document.getElementById('results');
     const summaryDiv = document.getElementById('summary');
     const progressDiv = document.getElementById('progress');
-    let passed = 0, failed = 0, skipped = 0;
 
     function logResult(name, status, detail) {
       const div = document.createElement('div');
       div.className = `test-result ${status}`;
-      const icon = status === 'pass' ? '[PASS]' : status === 'fail' ? '[FAIL]' : '[SKIP]';
-      div.textContent = `${icon} ${name}${detail ? ' — ' + detail : ''}`;
+      const icon = status === 'pass' ? '[PASS]' : '[FAIL]';
+      div.textContent = `${icon} ${name}${detail ? ' \u2014 ' + detail : ''}`;
       resultsDiv.appendChild(div);
-      if (status === 'pass') passed++;
-      else if (status === 'fail') failed++;
-      else skipped++;
     }
 
-    function updateProgress(current, total) {
-      progressDiv.textContent = `Running test ${current}/${total}...`;
+    // Yield to the browser so the UI can repaint
+    function yieldUI() {
+      return new Promise(resolve => setTimeout(resolve, 0));
     }
 
-    // Generate a QR code into a canvas and return the canvas element
-    function generateTestQR(text, targetId) {
+    function generateTestQR(text) {
       return new Promise((resolve, reject) => {
-        const container = document.getElementById(targetId);
+        const container = document.getElementById('test-qr');
         container.innerHTML = '';
         try {
           new QRCode(container, {
@@ -102,220 +182,168 @@
             quietZone: 10,
             quietZoneColor: "#ffffff"
           });
-          // QRCode library renders asynchronously via image; wait for the canvas/img
+          // QRCode library renders async; wait for canvas or img
           setTimeout(() => {
             const canvas = container.querySelector('canvas');
             const img = container.querySelector('img');
             if (canvas) {
               resolve(canvas);
             } else if (img) {
-              // Convert img to canvas for scanning
               const c = document.createElement('canvas');
               c.width = img.naturalWidth || 256;
               c.height = img.naturalHeight || 256;
               const ctx = c.getContext('2d');
-              img.onload = () => {
-                ctx.drawImage(img, 0, 0);
-                resolve(c);
-              };
-              if (img.complete) {
-                ctx.drawImage(img, 0, 0);
-                resolve(c);
-              }
+              const draw = () => { ctx.drawImage(img, 0, 0); resolve(c); };
+              if (img.complete && img.naturalWidth) draw();
+              else img.onload = draw;
             } else {
               reject(new Error('QR code not rendered'));
             }
-          }, 300);
+          }, 200);
         } catch (err) {
           reject(err);
         }
       });
     }
 
-    // Scan a QR code from a canvas element and return the decoded text
     function scanQRFromCanvas(canvas) {
       return new Promise((resolve, reject) => {
         canvas.toBlob(blob => {
-          if (!blob) {
-            reject(new Error('Failed to convert canvas to blob'));
-            return;
-          }
-          const file = new File([blob], 'test-qr.png', { type: 'image/png' });
-          const scanner = new Html5Qrcode('test-qr-scanner-' + Date.now());
-          // Create a temporary div for the scanner
-          const tmpDiv = document.createElement('div');
-          tmpDiv.id = scanner.elementId || 'tmp-scanner-' + Date.now();
-          tmpDiv.style.display = 'none';
-          document.body.appendChild(tmpDiv);
-
-          const scannerInstance = new Html5Qrcode(tmpDiv.id);
-          scannerInstance.scanFile(file, true)
-            .then(decodedText => {
-              scannerInstance.clear();
-              tmpDiv.remove();
-              resolve(decodedText);
-            })
-            .catch(err => {
-              scannerInstance.clear();
-              tmpDiv.remove();
-              reject(err);
-            });
+          if (!blob) { reject(new Error('Failed to create blob')); return; }
+          const file = new File([blob], 'test.png', { type: 'image/png' });
+          const scannerDiv = document.getElementById('test-scanner');
+          scannerDiv.innerHTML = '';
+          const scanner = new Html5Qrcode('test-scanner');
+          scanner.scanFile(file, true)
+            .then(decoded => { scanner.clear(); resolve(decoded); })
+            .catch(err => { scanner.clear(); reject(err); });
         }, 'image/png');
       });
     }
 
-    // Round-trip test: generate QR, scan it back, compare
-    async function testQRRoundTrip(name, inputText) {
+    async function runQRTest(test) {
       try {
-        const canvas = await generateTestQR(inputText, 'test-qr');
+        const canvas = await generateTestQR(test.input);
         const decoded = await scanQRFromCanvas(canvas);
-        if (decoded === inputText) {
-          logResult(name, 'pass', `"${inputText.substring(0, 50)}${inputText.length > 50 ? '...' : ''}"`);
+        const short = test.input.length > 50 ? test.input.substring(0, 50) + '...' : test.input;
+        if (decoded === test.input) {
+          logResult(test.name, 'pass', `"${short}"`);
+          return true;
         } else {
-          logResult(name, 'fail', `Expected "${inputText.substring(0, 50)}" but got "${decoded.substring(0, 50)}"`);
+          const got = decoded.length > 50 ? decoded.substring(0, 50) + '...' : decoded;
+          logResult(test.name, 'fail', `Expected "${short}" got "${got}"`);
+          return false;
         }
       } catch (err) {
-        logResult(name, 'fail', err.message);
+        logResult(test.name, 'fail', err.message);
+        return false;
       }
     }
 
-    // Test that 1D barcode generation doesn't throw
-    function testBarcodeGeneration(name, text, format) {
+    function runBarcodeTest(test) {
       try {
         const svg = document.getElementById('test-barcode');
         svg.innerHTML = '';
-        JsBarcode('#test-barcode', text, {
-          format: format,
+        JsBarcode('#test-barcode', test.input, {
+          format: test.format,
           width: 2,
           height: 100,
           displayValue: true
         });
-        // Check that SVG has content
-        if (svg.querySelector('rect') || svg.querySelector('path') || svg.innerHTML.length > 50) {
-          logResult(name, 'pass', `Generated ${format} for "${text}"`);
+        if (svg.querySelector('rect') || svg.innerHTML.length > 50) {
+          logResult(test.name, 'pass', `${test.format} for "${test.input}"`);
+          return true;
         } else {
-          logResult(name, 'fail', `SVG appears empty for ${format}`);
+          logResult(test.name, 'fail', 'SVG empty');
+          return false;
         }
       } catch (err) {
-        logResult(name, 'fail', err.message);
+        logResult(test.name, 'fail', err.message);
+        return false;
       }
     }
 
-    // Test input validation logic (mirrors generateQRCode validation)
-    function testValidation(name, text, format, shouldPass) {
+    function runValidationTest(test) {
       let valid = true;
       let reason = '';
+      const text = test.input;
+      const format = test.format;
 
       if (!text || typeof text !== 'string') {
         valid = false;
-        reason = 'empty or non-string input';
+        reason = 'empty or non-string';
       } else if (['UPC_A', 'UPC_E', 'EAN_13', 'EAN_8'].includes(format)) {
         if (!/^\d+$/.test(text)) {
           valid = false;
-          reason = 'non-numeric for UPC/EAN';
+          reason = 'non-numeric';
         }
         const lengths = { 'UPC_A': 11, 'UPC_E': 7, 'EAN_13': 12, 'EAN_8': 7 };
         if (lengths[format] && text.length !== lengths[format]) {
           valid = false;
-          reason = `wrong length: ${text.length} (need ${lengths[format]})`;
+          reason = `length ${text.length} (need ${lengths[format]})`;
         }
       } else if (text.length > 4000) {
         valid = false;
-        reason = 'exceeds max length';
+        reason = 'exceeds 4000 chars';
       }
 
-      if (valid === shouldPass) {
-        logResult(name, 'pass', reason || 'validation correct');
+      if (valid === test.expect) {
+        logResult(test.name, 'pass', reason || 'correct');
+        return true;
       } else {
-        logResult(name, 'fail', `Expected ${shouldPass ? 'valid' : 'invalid'}, got ${valid ? 'valid' : 'invalid'}: ${reason}`);
+        logResult(test.name, 'fail', `expected ${test.expect ? 'valid' : 'invalid'}, got ${valid ? 'valid' : 'invalid'}: ${reason}`);
+        return false;
       }
     }
 
-    async function runAllTests() {
-      document.getElementById('run-btn').disabled = true;
+    // ── Main Runner ──
+
+    async function runSelected() {
+      const runBtn = document.getElementById('run-btn');
+      runBtn.disabled = true;
       resultsDiv.innerHTML = '';
       summaryDiv.innerHTML = '';
-      passed = 0;
-      failed = 0;
-      skipped = 0;
+      progressDiv.textContent = '';
 
-      const tests = [];
-      let testIndex = 0;
+      // Collect selected tests
+      const selected = [];
+      testGroups.forEach(group => {
+        group.tests.forEach(test => {
+          const cb = selectionDiv.querySelector(`input[data-test-id="${test.id}"]`);
+          if (cb && cb.checked) selected.push(test);
+        });
+      });
 
-      // === QR Code Round-Trip Tests ===
-      const qrTests = [
-        ['QR: simple text', 'Hello World'],
-        ['QR: URL', 'https://github.com/psems/pfos'],
-        ['QR: numeric', '1234567890'],
-        ['QR: special characters', 'Test!@#$%^&*()'],
-        ['QR: spaces and punctuation', 'The quick brown fox jumps over the lazy dog.'],
-        ['QR: unicode', 'Caf\u00e9 na\u00efve r\u00e9sum\u00e9'],
-        ['QR: long text', 'A'.repeat(200)],
-        ['QR: single character', 'X'],
-        ['QR: mixed case', 'AbCdEfGhIjKlMnOpQrStUvWxYz'],
-        ['QR: newlines', 'Line1\nLine2\nLine3'],
-        ['QR: JSON-like', '{"key":"value","num":42}'],
-        ['QR: email', 'user@example.com'],
-        ['QR: whitespace preserved', '  leading and trailing  '],
-      ];
-
-      const totalTests = qrTests.length + 9 + 10; // QR + barcode + validation
-
-      for (const [name, text] of qrTests) {
-        testIndex++;
-        updateProgress(testIndex, totalTests);
-        await testQRRoundTrip(name, text);
-        // Small delay between tests to avoid DOM thrashing
-        await new Promise(r => setTimeout(r, 100));
+      if (selected.length === 0) {
+        progressDiv.textContent = 'No tests selected.';
+        runBtn.disabled = false;
+        return;
       }
 
-      // === 1D Barcode Generation Tests ===
-      const barcodeTests = [
-        ['Barcode: Code128 alphanumeric', 'ABC-123', 'CODE128'],
-        ['Barcode: Code128 text', 'Hello World', 'CODE128'],
-        ['Barcode: Code39 uppercase', 'HELLO123', 'CODE39'],
-        ['Barcode: EAN13', '590123412345', 'EAN13'],
-        ['Barcode: EAN8', '9638507', 'EAN8'],
-        ['Barcode: UPC-A', '01234567890', 'UPC'],
-        ['Barcode: ITF even digits', '12345678', 'ITF'],
-        ['Barcode: Codabar', 'A12345B', 'codabar'],
-        ['Barcode: Code93', 'TEST93', 'CODE93'],
-      ];
+      let passed = 0, failed = 0;
+      for (let i = 0; i < selected.length; i++) {
+        const test = selected[i];
+        progressDiv.textContent = `Running ${i + 1}/${selected.length}: ${test.name}`;
+        await yieldUI();
 
-      for (const [name, text, format] of barcodeTests) {
-        testIndex++;
-        updateProgress(testIndex, totalTests);
-        testBarcodeGeneration(name, text, format);
+        let ok = false;
+        if (test.type === 'qr') {
+          ok = await runQRTest(test);
+        } else if (test.type === 'barcode') {
+          ok = runBarcodeTest(test);
+        } else if (test.type === 'validate') {
+          ok = runValidationTest(test);
+        }
+
+        if (ok) passed++;
+        else failed++;
       }
 
-      // === Input Validation Tests ===
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: empty string rejected', '', 'QR_CODE', false);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: normal text accepted', 'Hello', 'QR_CODE', true);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: EAN-13 correct length', '590123412345', 'EAN_13', true);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: EAN-13 wrong length rejected', '12345', 'EAN_13', false);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: EAN-13 non-numeric rejected', 'ABCDEFGHIJKL', 'EAN_13', false);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: UPC-A correct length', '01234567890', 'UPC_A', true);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: UPC-A wrong length rejected', '123', 'UPC_A', false);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: EAN-8 correct length', '9638507', 'EAN_8', true);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: over 4000 chars rejected', 'X'.repeat(4001), 'QR_CODE', false);
-      testIndex++; updateProgress(testIndex, totalTests);
-      testValidation('Validate: exactly 4000 chars accepted', 'X'.repeat(4000), 'QR_CODE', true);
-
-      // === Summary ===
       progressDiv.textContent = 'Done.';
-      const total = passed + failed + skipped;
-      summaryDiv.textContent = `Results: ${passed}/${total} passed, ${failed} failed, ${skipped} skipped`;
+      const total = passed + failed;
+      summaryDiv.textContent = `Results: ${passed}/${total} passed, ${failed} failed`;
       summaryDiv.className = failed > 0 ? 'has-fail' : 'all-pass';
-      document.getElementById('run-btn').disabled = false;
+      runBtn.disabled = false;
     }
   </script>
 </body>

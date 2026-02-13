@@ -39,32 +39,6 @@ Optimized for:
   <meta name="theme-color" content="#00ff00">
   <link rel="stylesheet" href="style.css">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <style>
-    #format-select {
-      background: #000;
-      color: #00ff00;
-      border: 1px solid #00ff00;
-      padding: 5px;
-      margin: 5px 0;
-      width: 100%;
-      max-width: 300px;
-      font-family: monospace;
-    }
-    #format-select option {
-      background: #000;
-      color: #00ff00;
-    }
-    #barcode {
-      display: none;
-      max-width: 100%;
-      height: auto;
-      margin: 20px auto;
-    }
-    #qr {
-      display: block;
-      margin: 20px auto;
-    }
-  </style>
   <!-- Load barcode libraries -->
   <script src="qrcode.min.js"></script>
   <script src="html5-qrcode.min.js"></script>
@@ -371,8 +345,8 @@ Optimized for:
 
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
-      if (scanBtn) scanBtn.style.display = (selected === 'clone') ? '' : 'none';
-      if (cancelBtn) cancelBtn.style.display = 'none';
+      if (scanBtn) scanBtn.classList.toggle('hidden', selected !== 'clone');
+      if (cancelBtn) cancelBtn.classList.add('hidden');
 
       if (selected === 'clone') {
         generateCloneQR();
@@ -453,7 +427,7 @@ Optimized for:
       document.getElementById('increment-btn').classList.add('hidden');
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
-      if (scanBtn) scanBtn.style.display = (defaultMode === 'clone') ? '' : 'none';
+      if (scanBtn) scanBtn.classList.toggle('hidden', defaultMode !== 'clone');
       if (cancelBtn) cancelBtn.classList.add('hidden');
       
       // Generate initial QR code with error handling
@@ -475,28 +449,23 @@ Optimized for:
       stopCamera();
       const scanBtn = document.getElementById('scan-qr-btn');
       const cancelBtn = document.getElementById('cancel-scan-btn');
-      if (scanBtn) scanBtn.style.display = 'none';
-      if (cancelBtn) {
-        cancelBtn.style.display = '';
-      }
+      if (scanBtn) scanBtn.classList.add('hidden');
+      if (cancelBtn) cancelBtn.classList.remove('hidden');
       const readerDiv = document.getElementById('reader');
       readerDiv.innerHTML = '';
       readerDiv.classList.remove('hidden');
       if (typeof Html5Qrcode === 'undefined') {
         alert('QR scanner library not loaded.');
         console.error('Html5Qrcode is undefined.');
-        if (scanBtn) scanBtn.style.display = '';
-        if (cancelBtn) {
-          cancelBtn.classList.add('hidden');
-          cancelBtn.style.display = 'none';
-        }
+        if (scanBtn) scanBtn.classList.remove('hidden');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         return;
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera API not supported in this browser.');
         console.error('mediaDevices.getUserMedia not available.');
-        if (scanBtn) scanBtn.style.display = '';
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (scanBtn) scanBtn.classList.remove('hidden');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         return;
       }
       if (typeof navigator.permissions !== 'undefined' && navigator.permissions.query) {
@@ -597,8 +566,8 @@ Optimized for:
         console.error('Camera init error:', errorDetails);
         logEntry(`Camera init error: ${errorDetails.type} - ${errorDetails.message}`);
         alert("Camera initialization failed.\nError: " + err);
-        if (scanBtn) scanBtn.style.display = '';
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (scanBtn) scanBtn.classList.remove('hidden');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
       }
     }
 
@@ -610,8 +579,11 @@ Optimized for:
 
       function resetButtons() {
         if (readerDiv) readerDiv.innerHTML = '';
-        if (scanBtn) scanBtn.style.display = isCloneMode ? '' : 'none';
-        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (scanBtn) {
+          if (isCloneMode) scanBtn.classList.remove('hidden');
+          else scanBtn.classList.add('hidden');
+        }
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         if (!isCloneMode && readerDiv) readerDiv.classList.add('hidden');
       }
 
