@@ -94,8 +94,8 @@ Optimized for:
     <button id="scan-qr-btn" type="button" onclick="startCamera()">Scan QR Code</button>
     <button id="cancel-scan-btn" type="button" onclick="stopCamera()" class="hidden">Cancel Scan</button>
   </div>
-  <div id="qr"></div>
-  <svg id="barcode"></svg>
+  <div id="qr" class="hidden"></div>
+  <svg id="barcode" class="hidden"></svg>
   <button id="increment-btn" class="hidden" onclick="incrementAndGenerateQR()">INCREMENT</button>
   <button id="mark-btn" onclick="markCurrent()">MARK</button>
   <button onclick="downloadLog()">Download Log</button>
@@ -205,12 +205,12 @@ Optimized for:
         const twoDFormats = ['QR_CODE', 'AZTEC', 'DATA_MATRIX', 'PDF_417'];
 
         // Hide both display areas initially
-        document.getElementById('barcode').style.display = 'none';
-        document.getElementById('qr').style.display = 'none';
+        document.getElementById('barcode').classList.add('hidden');
+        document.getElementById('qr').classList.add('hidden');
 
         if (oneDFormats[format]) {
           // Generate 1D barcode
-          document.getElementById('barcode').style.display = 'block';
+          document.getElementById('barcode').classList.remove('hidden');
           try {
             JsBarcode("#barcode", text, {
               format: oneDFormats[format],
@@ -230,7 +230,7 @@ Optimized for:
           }
         } else if (twoDFormats.includes(format)) {
           // Handle QR Code and other 2D codes
-          document.getElementById('qr').style.display = 'block';
+          document.getElementById('qr').classList.remove('hidden');
           qr = new QRCode(document.getElementById("qr"), {
             text: text,
             width: 256,
