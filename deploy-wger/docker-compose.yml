@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+  web:
+    image: wger/server:latest
+    container_name: wger-web
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    volumes:
+      - static:/home/wger/static
+      - media:/home/wger/media
+    expose:
+      - "8000"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8000
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  celery-worker:
+    image: wger/server:latest
+    container_name: wger-celery-worker
+    command: /home/wger/venv/bin/celery -A wger worker --loglevel=info
+    depends_on:
+      web:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    volumes:
+      - media:/home/wger/media
+    restart: unless-stopped
+
+  celery-beat:
+    image: wger/server:latest
+    container_name: wger-celery-beat
+    command: /home/wger/venv/bin/celery -A wger beat --loglevel=info
+    depends_on:
+      web:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: wger-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-wger}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: pg_isready -U wger -d wger
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    container_name: wger-cache
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: wger-nginx
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static:/wger/static:ro
+      - media:/wger/media:ro
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  static:
+  media:
+  redis-data:

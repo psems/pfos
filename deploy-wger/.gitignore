@@ -1,0 +1,2 @@
+# Don't commit the Azure-specific compose (it's generated at deploy time)
+docker-compose.azure.yml
